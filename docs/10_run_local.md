@@ -80,7 +80,35 @@ docker compose ps
 
 ---
 
-## 6. Reset (se necessario)
+## 6. Verifica API
+
+Dopo l'avvio dei servizi, testare l'endpoint health:
+
+```bash
+# Test endpoint /health
+curl http://localhost:8000/health
+```
+
+Testare l'endpoint query:
+
+```bash
+# Test POST /api/v1/query
+curl -X POST http://localhost:8000/api/v1/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "bandi", "top_k": 3}'
+```
+
+Test con specifica KB:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "programmi", "kb": "venezia", "top_k": 5}'
+```
+
+---
+
+## 7. Reset (se necessario)
 
 Per fermare e rimuovere tutto incluso il volume dati:
 

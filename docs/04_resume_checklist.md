@@ -19,7 +19,7 @@ Get-Content _cc_status\checkpoint_status.md
 
 # 1.5 Controllare lo stato Git
 git status --short
-git log --oneline -1
+git log --oneline -1  # l'ultimo commit dovrebbe menzionare "CC-03.1" per conferma hardening compose
 
 # 1.5 Elencare struttura repo veloce
 (Get-ChildItem -Recurse -Depth 2).FullName
@@ -50,7 +50,8 @@ docker compose down -v
 
 ## 4. Prossimo task suggerito (CC-04)
 
-**Task successivo:** creare lo schema minimo `scripts/db_init.sql` (già presente) e poi progettare/codificare le prime tabelle; aggiungere struttura `api/`, `worker/`, `ui/`.
+**Task successivo:** iniziare a costruire lo skeleton del backend: aggiungere l'endpoint `/query` (stub che restituisce un JSON vuoto) e `/health` all'interno di `api/`, collegarlo al DB esistente e creare cartelle vuote `worker/` e `ui/`.  
+Questo prepara il terreno per il flusso ingest→query e rende il progetto avviabile end-to-end una volta implementata la logica.
 
 
 ## 4. Nota operativa

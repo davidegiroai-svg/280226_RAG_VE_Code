@@ -1,5 +1,6 @@
 # RAG VE PoC - Docker Compose
 # servizio DB: Postgres con estensione pgvector per storage vettoriale
+# servizio API: FastAPI backend
 
 services:
   db:
@@ -23,6 +24,20 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+
+  api:
+    build: ./api
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-rag}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-rag_password_change_me}
+      - POSTGRES_DB=${POSTGRES_DB:-rag}
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   pgdata:

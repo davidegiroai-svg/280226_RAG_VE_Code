@@ -10,12 +10,14 @@
 - **Git abilitato**: `.git/` presente con commit iniziale (mese/anno 2026, vedi log in `.git/logs/HEAD`).
 - `.gitignore` esiste e filtra `_cc_status/`, env e cache.
 - **CC-03 completato**: ora disponibili i seguenti file runnable:
-  - `docker-compose.yml` (containerizzazione di DB e servizi base)
+  - `docker-compose.yml` (containerizzazione di DB e servizi base, healthcheck incluso, porte e credenziali configurabili)
   - `scripts/db_init.sql` (schema DB di base già definito)
   - `.env.example` (template variabili ambiente)
   - `docs/10_run_local.md` (runbook con istruzioni di avvio/verifica/reset)
+- **CC-03.1 completato**: compose hardening (rimozione POSTGRES_PORT dall'env, commenti corretti) e runbook ampliato con comandi PowerShell + nota reset DB quando si cambiano credenziali.
 
-> Con questi artefatti è possibile avviare localmente il database e verificare la creazione delle tabelle; tuttavia non esistono ancora API, worker o logica di ingest/query.
+> Con questi artefatti è possibile avviare localmente il database via `docker compose up`, osservare il healthcheck e verificare la creazione delle tabelle; il runbook include anche istruzioni PowerShell e la procedura di reset.  
+> Mancano ancora componenti di ingest, API e query che costituiscono il flusso end-to-end.
 
 ### Contesto attuale
 
@@ -50,10 +52,11 @@ Il file `_cc_status/audit/latest/audit_summary.json` non si è aggiornato automa
 
 - **Stato post-CC-03**: Docker Compose e schema DB sono presenti; un runbook descrive come avviare il DB e verificare le tabelle.
 
-- **M0 runnable** adesso richiede ancora:
+- **M0 runnable** adesso richiede ancora (per arrivare a un flow ingest→query minimale):
   1. Fornire un `README.md` con overview e istruzioni.
-  2. Strutturare cartelle `api/`, `worker/`, `ui/` come skeleton e inserire codice placeholder.
-  3. Facoltativo: rieseguire lo script di audit per aggiornare summary con i nuovi file.
+  2. Creare skeleton `api/` con almeno un endpoint stub `/health` e `/query`, `worker/` e `ui/` vuote.
+  3. Collegare il backend al DB tramite le tabelle esistenti e verificare la connettività.
+  4. Facoltativo: rieseguire lo script di audit per aggiornare summary con i nuovi file.
 
 - **M1** (MVP funzionante) richiede sviluppo e deploy dei componenti applicativi (ingest, query, UI). Attualmente nessuno di questi è presente.
 
