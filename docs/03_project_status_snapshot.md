@@ -15,9 +15,12 @@
   - `.env.example` (template variabili ambiente)
   - `docs/10_run_local.md` (runbook con istruzioni di avvio/verifica/reset)
 - **CC-03.1 completato**: compose hardening (rimozione POSTGRES_PORT dall'env, commenti corretti) e runbook ampliato con comandi PowerShell + nota reset DB quando si cambiano credenziali.
+- **CC-04 completato**: servizio `api` aggiunto al docker-compose e skeleton FastAPI con `/health` e `/api/v1/query`.
+- **CC-04.1 completato**: migliorata robustezza query (min_length validation, ILIKE search, excerpt truncation) e rinomine nei moduli; i parametri POST/GET ora hanno controllo Pydantic.
 
 > Con questi artefatti è possibile avviare localmente il database e l'API via `docker compose up`, osservare il healthcheck, testare `/health` e richiedere `/api/v1/query` (stub).  
-> Il backend API è presente (FastAPI skeleton) ma la logica di ingest/embedding/citazioni è ancora da implementare per ottenere risposte complete.
+> Esempio: `curl -X POST http://localhost:8000/api/v1/query -H "Content-Type: application/json" -d '{"query":"bandi","top_k":3}'`.
+> Il backend API gestisce input invalidi (query vuota) e ritorna risposte placeholder; la logica di ingest/embedding/citazioni è ancora da implementare per ottenere risposte complete.
 
 ### Contesto attuale
 

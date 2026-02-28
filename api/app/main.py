@@ -25,7 +25,7 @@ class Source(BaseModel):
     id: str
     score: float
     kb_namespace: str
-    source_uri: Optional[str] = None
+    source_path: Optional[str] = None
     excerpt: str
 
 
@@ -44,10 +44,14 @@ def health_check():
     """Health check endpoint with DB connection test."""
     try:
         db_ok = test_connection()
+        if not db_ok:
+            raise HTTPException(status_code=503, detail="Database connection failed")
         return HealthResponse(
             status="ok",
-            database="connected" if db_ok else "disconnected"
+            database="connected"
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Database connection failed: {str(e)}")
 

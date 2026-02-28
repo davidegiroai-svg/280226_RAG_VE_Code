@@ -6,6 +6,9 @@ from datetime import datetime
 def build_query_sql(query_text: str, kb_namespace: Optional[str] = None, top_k: int = 5) -> Tuple[str, List]:
     """Build SQL query for text search on chunks table.
 
+    Uses ILIKE for simple matching with ranking based on match position.
+    Returns excerpt truncated to 800 chars.
+
     Returns:
         Tuple[str, List]: (sql_query, params_list)
     """
@@ -15,7 +18,7 @@ def build_query_sql(query_text: str, kb_namespace: Optional[str] = None, top_k: 
             kb_namespace,
             document_id::text,
             LEFT(testo, 800) as excerpt,
-            metadata->>'source_path' as source_uri,
+            metadata->>'source_path' as source_path,
             chunk_index
         FROM chunks
         WHERE 1=1
@@ -30,8 +33,10 @@ def build_query_sql(query_text: str, kb_namespace: Optional[str] = None, top_k: 
     sql += " AND LOWER(testo) LIKE LOWER(%s)"
     params.append(f"%{query_text}%")
 
-    # Order by chunk_index for document order preservation
-    sql += " ORDER BY chunk_index LIMIT %s"
+    # Order by match position: exact match first, then position in text
+    # Use POSITION to rank results by how early in the text the match appears
+    sql += " ORDER BY POSITION(LOWER(%s) IN LOWER(testo)), chunk_index LIMIT %s"
+    params.append(query_text)
     params.append(top_k)
 
     return sql, params
@@ -45,7 +50,7 @@ def parse_results(rows) -> List[Dict[str, Any]]:
             "id": row["id"],
             "score": 0.85,  # Placeholder - real score would need vector search
             "kb_namespace": row["kb_namespace"],
-            "source_uri": row.get("source_uri"),
+            "source_path": row.get("source_path"),
             "excerpt": row["excerpt"]
         })
     return sources

@@ -98,12 +98,21 @@ curl -X POST http://localhost:8000/api/v1/query \
   -d '{"query": "bandi", "top_k": 3}'
 ```
 
-Test con specifica KB:
+Esempio di risposta:
 
-```bash
-curl -X POST http://localhost:8000/api/v1/query \
-  -H "Content-Type: application/json" \
-  -d '{"query": "programmi", "kb": "venezia", "top_k": 5}'
+```json
+{
+  "answer": "Retrieval-only response. No LLM synthesis yet.",
+  "sources": [
+    {
+      "id": "uuid",
+      "score": 0.85,
+      "kb_namespace": "venezia",
+      "source_path": "/path/to/file.pdf",
+      "excerpt": "estratto del documento..."
+    }
+  ]
+}
 ```
 
 ---

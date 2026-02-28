@@ -58,6 +58,8 @@ curl -X POST http://localhost:8000/api/v1/query \
 
 ## 4. Prossimo task suggerito (CC-05)
 
+**Nota:** CC-04.1 è stato committato (`a71bfbc`) e introduce controlli input e query più robuste.
+
 **Task successivo:** sviluppare il componente `worker/` per l'ingest da filesystem (monitor cartelle), chunking dei documenti e popolamento della tabella `chunks`; prevedere il mapping `source_path -> kb_namespace` e prime regole di dedup.  
 Perché: senza ingest automatico e popolamento di `chunks` le query dell'API restano vuote; CC-05 abilita dati reali per test end-to-end.
 
