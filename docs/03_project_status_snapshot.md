@@ -5,10 +5,10 @@
 
 ---
 
-## Stato attuale del repository
-
-- Repository non è sotto controllo versione (`.git/` mancante).
-- Cartelle presenti:
+-## Stato attuale del repository
+- **Git abilitato**: `.git/` presente con commit iniziale (mese/anno 2026, vedi log in `.git/logs/HEAD`).
+- `.gitignore` esiste e filtra `_cc_status/`, env e cache.
+- Cartelle presenti (dopo CC-02):
   - `docs/` (contiene solo `00_repo_audit.md`)
   - `scripts/` (contiene `repo_audit.py`)
   - `_cc_status/` con audit generati.
@@ -28,7 +28,7 @@
 - `risky_paths.txt` (nessuna corrispondenza)
 - `audit_summary.json` (presenze/assenze e timestamp)
 
-`_cc_status/checkpoint_status.md` indica che il TASK CC-01 è **DONE** e rimanda al report in `docs/00_repo_audit.md`.
+`_cc_status/checkpoint_status.md` indica che il TASK CC-01 è **DONE** (audit generato) e che CC-02 (git init) è stato eseguito con commit "M0 bootstrap: audit + docs baseline".
 
 ---
 

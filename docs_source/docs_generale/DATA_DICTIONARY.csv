@@ -1,0 +1,28 @@
+entity,field,type,description
+knowledge_base,id,uuid,Primary key for KB
+knowledge_base,name,text,Human-readable KB name
+knowledge_base,description,text,Short description
+document,id,uuid,Primary key for Document
+document,kb_id,uuid,References KB
+document,source_uri,text,Original document location
+document,title,text,Document title
+document,content_hash,text,Hash used to detect duplicates
+chunk,id,uuid,Primary key for chunk
+chunk,document_id,uuid,References Document
+chunk,chunk_index,int,Order index of chunk inside document
+chunk,text,text,Chunk text content
+chunk,metadata,jsonb,"Additional metadata (page, mime, author)"
+embedding,id,uuid,Primary key for embedding
+embedding,model,text,Embedding model identifier
+embedding,vector,vector,Vector representation (pgvector)
+embedding,dimension,int,Vector dimension
+ingest_job,id,uuid,Primary key for ingestion jobs
+ingest_job,kb_id,uuid,Target KB
+ingest_job,connector_type,text,Type of connector used
+query_log,id,uuid,Primary key for query log
+query_log,user_id,uuid,Optional user who made the query
+query_log,kb_ids,array,List of KBs consulted
+query_log,query_text,text,Original query text
+query_log,retrieved_chunks,jsonb,Retrieved chunk references and scores
+
+NOTE,PoC,Objective,"PoC on local workstation; deliver Docker Compose, DB init scripts, sample configs and runbook for export to client's IT"

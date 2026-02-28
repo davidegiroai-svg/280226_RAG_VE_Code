@@ -17,6 +17,10 @@ Get-Content _cc_status\audit\latest\audit_summary.json | ConvertFrom-Json | Form
 # 1.4 Visualizzare checkpoint status
 Get-Content _cc_status\checkpoint_status.md
 
+# 1.5 Controllare lo stato Git
+git status --short
+git log --oneline -1
+
 # 1.5 Elencare struttura repo veloce
 (Get-ChildItem -Recurse -Depth 2).FullName
 ```
@@ -30,10 +34,10 @@ Get-Content _cc_status\checkpoint_status.md
 - `_cc_status/audit/latest/*` (soprattutto `repo_tree.txt` e `git_status.txt`).
 - Cartella `scripts/` per eventuale script utility (`repo_audit.py`).
 
-## 3. Primo task consigliato (CC-02)
+## 3. Primo task consigliato (CC-03)
 
-**Task successivo:** inizializzare il repository Git.  
-Questo produce `.git/` e abilita il tracking per ogni cambio, requisito fondamentale per proseguire con CC-03/CC-04.
+**Task successivo:** aggiungere il file `docker-compose.yml` di base con un servizio Postgres/pgvector e un backend placeholder.  
+Con Git inizializzato, ogni cambiamento sarà tracciato.
 
 ## 4. Nota operativa
 
