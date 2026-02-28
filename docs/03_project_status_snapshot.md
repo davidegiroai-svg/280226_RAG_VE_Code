@@ -5,19 +5,33 @@
 
 ---
 
--## Stato attuale del repository
+## Stato attuale del repository
+
 - **Git abilitato**: `.git/` presente con commit iniziale (mese/anno 2026, vedi log in `.git/logs/HEAD`).
 - `.gitignore` esiste e filtra `_cc_status/`, env e cache.
-- Cartelle presenti (dopo CC-02):
-  - `docs/` (contiene solo `00_repo_audit.md`)
-  - `scripts/` (contiene `repo_audit.py`)
+- **CC-03 completato**: ora disponibili i seguenti file runnable:
+  - `docker-compose.yml` (containerizzazione di DB e servizi base)
+  - `scripts/db_init.sql` (schema DB di base già definito)
+  - `.env.example` (template variabili ambiente)
+  - `docs/10_run_local.md` (runbook con istruzioni di avvio/verifica/reset)
+
+> Con questi artefatti è possibile avviare localmente il database e verificare la creazione delle tabelle; tuttavia non esistono ancora API, worker o logica di ingest/query.
+
+### Contesto attuale
+
+- Cartelle presenti:
+  - `docs/` (contiene report audit e runbook)
+  - `scripts/` (contiene `repo_audit.py` e `db_init.sql`)
   - `_cc_status/` con audit generati.
 - Cartelle **mancanti**: `docs_source/`, `api/`, `worker/`, `ui/`.
-- File chiave **assenti**:
-  - `docker-compose.yml` / `compose.yml`
-  - `scripts/db_init.sql`
-  - `.env.example`
-  - `README.md`
+- File chiave **ancora assenti** per completare M1:
+  - `README.md` (overview generale)
+
+Documentazione di progetto rimane limitata al report audit; nessun requisito/architettura definita nel repo.
+
+### Nota audit
+
+Il file `_cc_status/audit/latest/audit_summary.json` non si è aggiornato automaticamente dopo CC-03, suggerendo che lo script non è stato rieseguito. I nuovi file descritti sopra non compaiono nel summary.
 - Documentazione di progetto disponibile solo come report audit; nessun requisito/architettura definita nel repo.
 
 ### Contenuti audit
@@ -34,14 +48,15 @@
 
 ## Gap per raggiungere milestone M0/M1
 
-- **M0 runnable** richiede almeno struttura minima e strumenti Docker:
-  1. Inizializzare repository Git e `.gitignore` (asset base).  
-  2. Creare `docker-compose.yml` con servizi di base (DB, backend placeholder).  
-  3. Fornire schema DB (`scripts/db_init.sql`).  
-  4. Fornire README di overview e namespace doc.  
-  5. Strutturare cartelle `api/`, `worker/`, `ui/` come skeleton.
+- **Stato post-CC-03**: Docker Compose e schema DB sono presenti; un runbook descrive come avviare il DB e verificare le tabelle.
 
-- **M1** (MVP funzionante) richiede sviluppare implementazione reale, ma fino a M0 manca ancora l’intero codice applicativo e configurazione.
+- **M0 runnable** adesso richiede ancora:
+  1. Fornire un `README.md` con overview e istruzioni.
+  2. Strutturare cartelle `api/`, `worker/`, `ui/` come skeleton e inserire codice placeholder.
+  3. Facoltativo: rieseguire lo script di audit per aggiornare summary con i nuovi file.
+
+- **M1** (MVP funzionante) richiede sviluppo e deploy dei componenti applicativi (ingest, query, UI). Attualmente nessuno di questi è presente.
+
 
 ---
 

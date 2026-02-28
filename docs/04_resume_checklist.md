@@ -34,10 +34,24 @@ git log --oneline -1
 - `_cc_status/audit/latest/*` (soprattutto `repo_tree.txt` e `git_status.txt`).
 - Cartella `scripts/` per eventuale script utility (`repo_audit.py`).
 
-## 3. Primo task consigliato (CC-03)
+## 3. Eseguire e testare ambiente Docker
 
-**Task successivo:** aggiungere il file `docker-compose.yml` di base con un servizio Postgres/pgvector e un backend placeholder.  
-Con Git inizializzato, ogni cambiamento sarà tracciato.
+```powershell
+# 3.a Avviare servizi (DB prisma placeholder)
+docker compose up -d
+
+# 3.b Verificare tabelle nel DB
+# (richiede .env con credenziali)
+docker compose exec db psql -U $env:POSTGRES_USER -d $env:POSTGRES_DB -c "\dt"
+
+# 3.c Reset completo e rimozione volume
+docker compose down -v
+```
+
+## 4. Prossimo task suggerito (CC-04)
+
+**Task successivo:** creare lo schema minimo `scripts/db_init.sql` (già presente) e poi progettare/codificare le prime tabelle; aggiungere struttura `api/`, `worker/`, `ui/`.
+
 
 ## 4. Nota operativa
 

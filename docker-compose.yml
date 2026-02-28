@@ -4,15 +4,11 @@
 services:
   db:
     image: pgvector/pgvector:pg16
-    # Alternativa di fallback (se pgvector non disponibile):
-    # image: postgres:16
-    # command: ["postgres", "-c", "shared_preload_libraries=vector"]
 
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-rag}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rag_password_change_me}
       POSTGRES_DB: ${POSTGRES_DB:-rag}
-      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
 
     ports:
       - "${POSTGRES_PORT:-5432}:5432"

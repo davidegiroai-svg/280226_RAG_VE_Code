@@ -16,6 +16,12 @@ cp .env.example .env
 # Modificare .env con le credenziali desiderate
 ```
 
+**Nota:** Se cambi `POSTGRES_USER`, `POSTGRES_PASSWORD` o `POSTGRES_DB`, devi ricostruire il container:
+```powershell
+docker compose down -v
+docker compose up -d
+```
+
 ---
 
 ## 2. Avvio
@@ -57,7 +63,24 @@ Dovresti vedere:
 
 ---
 
-## 5. Reset (se necessario)
+## 5. Windows/PowerShell
+
+Se usi PowerShell su Windows, i comandi sono identici. Esempi:
+
+```powershell
+# Copia .env
+Copy-Item .env.example .env
+
+# Avvio
+docker compose up -d
+
+# Verifica
+docker compose ps
+```
+
+---
+
+## 6. Reset (se necessario)
 
 Per fermare e rimuovere tutto incluso il volume dati:
 
