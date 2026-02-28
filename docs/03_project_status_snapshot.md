@@ -16,16 +16,17 @@
   - `docs/10_run_local.md` (runbook con istruzioni di avvio/verifica/reset)
 - **CC-03.1 completato**: compose hardening (rimozione POSTGRES_PORT dall'env, commenti corretti) e runbook ampliato con comandi PowerShell + nota reset DB quando si cambiano credenziali.
 
-> Con questi artefatti è possibile avviare localmente il database via `docker compose up`, osservare il healthcheck e verificare la creazione delle tabelle; il runbook include anche istruzioni PowerShell e la procedura di reset.  
-> Mancano ancora componenti di ingest, API e query che costituiscono il flusso end-to-end.
+> Con questi artefatti è possibile avviare localmente il database e l'API via `docker compose up`, osservare il healthcheck, testare `/health` e richiedere `/api/v1/query` (stub).  
+> Il backend API è presente (FastAPI skeleton) ma la logica di ingest/embedding/citazioni è ancora da implementare per ottenere risposte complete.
 
 ### Contesto attuale
 
-- Cartelle presenti:
+Cartelle presenti:
   - `docs/` (contiene report audit e runbook)
   - `scripts/` (contiene `repo_audit.py` e `db_init.sql`)
+  - `api/` (FastAPI skeleton, Dockerfile, requirements)
   - `_cc_status/` con audit generati.
-- Cartelle **mancanti**: `docs_source/`, `api/`, `worker/`, `ui/`.
+Cartelle **mancanti**: `docs_source/`, `worker/`, `ui/`.
 - File chiave **ancora assenti** per completare M1:
   - `README.md` (overview generale)
 
@@ -52,10 +53,10 @@ Il file `_cc_status/audit/latest/audit_summary.json` non si è aggiornato automa
 
 - **Stato post-CC-03**: Docker Compose e schema DB sono presenti; un runbook descrive come avviare il DB e verificare le tabelle.
 
-- **M0 runnable** adesso richiede ancora (per arrivare a un flow ingest→query minimale):
+ **M0 runnable** adesso richiede ancora (per arrivare a un flow ingest→query minimale):
   1. Fornire un `README.md` con overview e istruzioni.
-  2. Creare skeleton `api/` con almeno un endpoint stub `/health` e `/query`, `worker/` e `ui/` vuote.
-  3. Collegare il backend al DB tramite le tabelle esistenti e verificare la connettività.
+  2. Implementare il componente `worker/` per ingest filesystem, chunking e popolamento della tabella `chunks`.
+  3. Integrare embedding (locale o provider) e citazioni nel backend query (sostituire il placeholder).
   4. Facoltativo: rieseguire lo script di audit per aggiornare summary con i nuovi file.
 
 - **M1** (MVP funzionante) richiede sviluppo e deploy dei componenti applicativi (ingest, query, UI). Attualmente nessuno di questi è presente.

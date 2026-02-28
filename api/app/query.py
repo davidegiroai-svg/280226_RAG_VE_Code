@@ -1,15 +1,20 @@
 # RAG VE API - Query logic
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime
 
-def build_query_sql(query_text: str, kb_namespace: Optional[str] = None, top_k: int = 5) -> str:
-    """Build SQL query for text search on chunks table."""
+
+def build_query_sql(query_text: str, kb_namespace: Optional[str] = None, top_k: int = 5) -> Tuple[str, List]:
+    """Build SQL query for text search on chunks table.
+
+    Returns:
+        Tuple[str, List]: (sql_query, params_list)
+    """
     sql = """
         SELECT
             id::text,
             kb_namespace,
             document_id::text,
-            testo as excerpt,
+            LEFT(testo, 800) as excerpt,
             metadata->>'source_path' as source_uri,
             chunk_index
         FROM chunks
@@ -25,10 +30,12 @@ def build_query_sql(query_text: str, kb_namespace: Optional[str] = None, top_k: 
     sql += " AND LOWER(testo) LIKE LOWER(%s)"
     params.append(f"%{query_text}%")
 
+    # Order by chunk_index for document order preservation
     sql += " ORDER BY chunk_index LIMIT %s"
     params.append(top_k)
 
     return sql, params
+
 
 def parse_results(rows) -> List[Dict[str, Any]]:
     """Parse query results into response format."""
@@ -42,6 +49,7 @@ def parse_results(rows) -> List[Dict[str, Any]]:
             "excerpt": row["excerpt"]
         })
     return sources
+
 
 def log_query(query_text: str, kb_namespace: Optional[str], sources: List[Dict], response_time_ms: int):
     """Log query to query_log table."""

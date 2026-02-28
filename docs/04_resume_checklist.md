@@ -46,12 +46,20 @@ docker compose exec db psql -U $env:POSTGRES_USER -d $env:POSTGRES_DB -c "\dt"
 
 # 3.c Reset completo e rimozione volume
 docker compose down -v
+ 
+# 3.d Verificare health dell'API
+curl http://localhost:8000/health
+
+# 3.e Test rapido endpoint query (ritorna stub)
+curl -X POST http://localhost:8000/api/v1/query \
+	-H "Content-Type: application/json" \
+	-d '{"query":"test"}'
 ```
 
-## 4. Prossimo task suggerito (CC-04)
+## 4. Prossimo task suggerito (CC-05)
 
-**Task successivo:** iniziare a costruire lo skeleton del backend: aggiungere l'endpoint `/query` (stub che restituisce un JSON vuoto) e `/health` all'interno di `api/`, collegarlo al DB esistente e creare cartelle vuote `worker/` e `ui/`.  
-Questo prepara il terreno per il flusso ingest→query e rende il progetto avviabile end-to-end una volta implementata la logica.
+**Task successivo:** sviluppare il componente `worker/` per l'ingest da filesystem (monitor cartelle), chunking dei documenti e popolamento della tabella `chunks`; prevedere il mapping `source_path -> kb_namespace` e prime regole di dedup.  
+Perché: senza ingest automatico e popolamento di `chunks` le query dell'API restano vuote; CC-05 abilita dati reali per test end-to-end.
 
 
 ## 4. Nota operativa

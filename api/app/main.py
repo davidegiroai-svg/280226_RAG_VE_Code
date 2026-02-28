@@ -1,7 +1,7 @@
 # RAG VE API - Main application
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List, Any
 
 from .db import test_connection, get_db_cursor
@@ -16,9 +16,9 @@ app = FastAPI(
 
 # Request/Response models
 class QueryRequest(BaseModel):
-    query: str
-    kb: Optional[str] = None
-    top_k: Optional[int] = 5
+    query: str = Field(..., min_length=1, description="Search query text")
+    kb: Optional[str] = Field(None, description="Optional KB namespace to filter")
+    top_k: Optional[int] = Field(5, ge=1, le=20, description="Number of results to return (1-20)")
 
 
 class Source(BaseModel):
@@ -40,7 +40,7 @@ class HealthResponse(BaseModel):
 
 
 @app.get("/health")
-async def health_check():
+def health_check():
     """Health check endpoint with DB connection test."""
     try:
         db_ok = test_connection()
@@ -53,14 +53,14 @@ async def health_check():
 
 
 @app.post("/api/v1/query")
-async def query_api(request: QueryRequest):
+def query_api(request: QueryRequest):
     """
     Query API - returns retrieval results.
 
     Accepts:
-    - query: search text
+    - query: search text (required, min_length=1)
     - kb: optional KB namespace to filter
-    - top_k: number of results to return (default: 5)
+    - top_k: number of results to return (default: 5, range: 1-20)
 
     Returns:
     - answer: placeholder (retrieval-only for now)
@@ -90,14 +90,16 @@ async def query_api(request: QueryRequest):
             sources=sources
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Query execution failed: {str(e)}")
 
 
 @app.get("/api/v1/query")
-async def query_get(query: str, kb: Optional[str] = None, top_k: Optional[int] = 5):
+def query_get(query: str = Field(..., min_length=1), kb: Optional[str] = None, top_k: Optional[int] = 5):
     """
     GET version of query API (for testing).
     Same parameters as POST /api/v1/query
     """
-    return await query_api(QueryRequest(query=query, kb=kb, top_k=top_k))
+    return query_api(QueryRequest(query=query, kb=kb, top_k=top_k))
