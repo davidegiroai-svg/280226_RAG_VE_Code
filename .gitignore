@@ -1,0 +1,6 @@
+_cc_status/**
+**/.env
+**/.env.*
+**/secrets/**
+__pycache__/
+*.log
