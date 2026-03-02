@@ -79,6 +79,15 @@ docker compose up -d
 
 **Nota:** Il re-init cancella permanentemente tutti i dati nel DB. Fai backup prima di eseguire se necessario.
 
+Per configurare le variabili di ambiente per l'embedding (opzionale), usa i seguenti comandi PowerShell:
+
+```powershell
+# Configurazione embedding (se necessario)
+$env:EMBEDDING_PROVIDER="ollama"
+$env:OLLAMA_MODEL="nomic-embed-text"
+$env:OLLAMA_BASE_URL="http://host.docker.internal:11434"
+```
+
 ---
 
 ## 6. Windows/PowerShell
@@ -98,7 +107,7 @@ docker compose ps
 
 ---
 
-## 6. Verifica API
+## 7. Verifica API
 
 Dopo l'avvio dei servizi, testare l'endpoint health:
 
@@ -135,7 +144,7 @@ Esempio di risposta:
 
 ---
 
-## 7. Vector Search Query API
+## 8. Vector Search Query API
 
 Dopo l'ingest, puoi query i documenti usando la ricerca vettoriale (cosine similarity):
 
@@ -166,34 +175,34 @@ Esempio di risposta (con 3 risultati ordinati per score):
       "score": 0.413,
       "kb_namespace": "demo",
       "source_path": "/data/inbox/demo/test_mojibake.txt",
-      "excerpt": "Questo �� un file di test con caratteri accentati..."
+      "excerpt": "Questo è un file di test con caratteri accentati..."
     },
     {
       "id": "627dcd6f-0b2a-4a2d-ad08-a6e1e66354c8",
       "score": 0.366,
       "kb_namespace": "demo",
       "source_path": "/data/inbox/demo/demo2.txt",
-      "excerpt": "Questo �� un secondo file di test..."
+      "excerpt": "Questo è un secondo file di test..."
     },
     {
       "id": "c68a4fa2-4837-480d-a219-f800f2ce0196",
       "score": 0.365,
       "kb_namespace": "demo",
       "source_path": "/data/inbox/demo/demo.txt",
-      "excerpt": "Questo �� un file di test per il PoC RAG VE..."
+      "excerpt": "Questo è un file di test per il PoC RAG VE..."
     }
   ]
 }
 ```
 
 **Note:**
-- `score`: misura della similarit� cosine (1.0 = perfetta, 0.0 = nessuna somiglianza)
+- `score`: misura della similarità cosine (1.0 = perfetta, 0.0 = nessuna somiglianza)
 - I risultati sono ordinati per score decrescente
-- Il filtro `kb` � opzionale: se omesso, cerca in tutte le KB
+- Il filtro `kb` è opzionale: se omesso, cerca in tutte le KB
 
 ---
 
-## 8. Ingest da filesystem
+## 9. Ingest da filesystem
 
 Per inserire documenti dal filesystem (es. `./data/inbox/<kb>/`):
 
@@ -220,7 +229,7 @@ Il worker processa solo file `.txt`, `.md`, `.csv`, `.json` (UTF-8) e:
 
 ---
 
-## 8. Windows/PowerShell
+## 10. Windows/PowerShell
 
 Se usi PowerShell su Windows, i comandi sono identici. Esempi:
 
@@ -242,7 +251,7 @@ docker compose --profile manual run --rm worker --kb demo --path /data/inbox/dem
 
 ---
 
-## 9. Query demo
+## 11. Query demo
 
 Dopo l'ingest, query i documenti:
 
@@ -255,7 +264,7 @@ curl -X POST http://localhost:8000/api/v1/query \
 
 ---
 
-## 10. Reset (se necessario)
+## 12. Reset (se necessario)
 
 Per fermare e rimuovere tutto incluso il volume dati:
 

@@ -14,7 +14,7 @@ def vector_to_str(vec: List[float]) -> str:
     Returns:
         String in PostgreSQL vector format: "[0.12, -0.34, ...]"
     """
-    return "[" + ", ".join(str(v) for v in vec) + "]"
+    return "[" + ",".join(str(v) for v in vec) + "]"
 
 
 def build_query_sql(
@@ -56,16 +56,13 @@ def build_query_sql(
         FROM chunks
         WHERE embedding IS NOT NULL
     """
-    params = [query_vec_str]
+    params = [query_vec_str, kb_namespace, top_k]
 
     if kb_namespace:
         sql += " AND kb_namespace = %s"
-        params.append(kb_namespace)
 
     # Order by cosine distance (closest first)
-    sql += " ORDER BY embedding <=> %s LIMIT %s"
-    params.append(query_vec_str)
-    params.append(top_k)
+    sql += " ORDER BY distance ASC LIMIT %s"
 
     return sql, params
 
@@ -75,7 +72,7 @@ def parse_results(rows) -> List[Dict[str, Any]]:
     sources = []
     for row in rows:
         distance = float(row["distance"])
-        score = 1.0 - distance
+        score = max(0.0, 1.0 - distance)
         sources.append({
             "id": row["id"],
             "score": score,

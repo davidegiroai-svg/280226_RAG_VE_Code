@@ -1,5 +1,7 @@
 # Checkpoint Status
 
+**Checkpoint updated:** 2026-03-02T22:05:00 by M1_TASK_05_Runbook+Hardening
+
 ## TASK CC-01 — Bootstrap Repo + Audit Wrapper
 **Status:** DONE
 **Timestamp:** 2026-02-28T15:08:36
@@ -128,6 +130,7 @@
 *Checkpoint updated by TASK M1_TASK_02_EmbeddingAdapter*
 *Checkpoint updated by TASK M1_TASK_03_Ingest_SaveEmbedding*
 *Checkpoint updated by TASK M1_TASK_04_Query_VectorSearch*
+*Checkpoint updated by TASK M1_TASK_05_Runbook+Hardening*
 
 ---
 
@@ -170,6 +173,28 @@ $response.sources | Select-Object id, score, source_path
 
 ---
 
+## TASK M1_TASK_05_Runbook+Hardening — Vector query hardening
+**Status:** DONE
+**Timestamp:** 2026-03-02T22:05:00
+**Changes:**
+- `api/app/query.py`: clamp score a [0..1] con `max(0.0, 1.0 - distance)`
+- `api/app/query.py`: SQL semplificato con single vector parameter, ORDER BY distance ASC
+- `api/app/query.py`: `vector_to_str()` senza spazi dopo virgola
+- `docker-compose.yml`: aggiunte env vars embedding per api e worker
+- `docs/10_run_local.md`: fix doppia numerazione "## 6"
+- `docs/10_run_local.md`: fix mojibake chars (similarità, �� -> accented)
+- `docs/10_run_local.md`: aggiunto snippet env vars embedding PowerShell
+
+**Verification:**
+```bash
+docker compose up -d --build
+docker compose run --rm worker --kb demo --path /data/inbox/demo
+$response = Invoke-RestMethod -Uri 'http://localhost:8000/api/v1/query' -Method POST -ContentType 'application/json' -Body '{"query": "bandi", "top_k": 3, "kb": "demo"}'
+# Verify: score >= 0, sources ordered by score desc
+```
+
+---
+
 ## TASK M1_TASK_03_Ingest_SaveEmbedding — embedding vector storage in chunks
 **Status:** DONE  
 **Timestamp:** 2026-03-02
@@ -183,3 +208,17 @@ $response.sources | Select-Object id, score, source_path
 - `docker compose run --rm worker --kb test_kb --path /data/inbox/demo`
 - `SELECT COUNT(*) FROM chunks WHERE kb_namespace='test_kb' AND embedding IS NOT NULL;`  (expected > 0)
 - `SELECT embedding_model, embedding_dim, COUNT(*) FROM chunks WHERE kb_namespace='test_kb' AND embedding IS NOT NULL GROUP BY 1,2;`
+
+---
+
+## TASK M1_TASK_05_Runbook+Hardening — Runbook updates + security hardening
+**Status:** DONE
+**Timestamp:** 2026-03-02T22:00:00
+
+**Changes:**
+- `docs/10_run_local.md`: aggiunta sezione "8. Security Hardening" con best practices
+- `docs/10_run_local.md`: aggiunta sezione "9. Environment Variable Management" con spiegazione POSTGRES_* variabili
+- `docker-compose.yml`: aggiunto commento esplicativo su variabili d'ambiente non esposte al container
+- `docker-compose.yml`: aggiunta nota su ` profiles: ["manual"]` per worker service
+- `api/.env.example`: rimossa `POSTGRES_PORT` (non necessaria per internal networking)
+- `docs/10_run_local.md`: aggiornato esempio `.env` senza POSTGRES_PORT
