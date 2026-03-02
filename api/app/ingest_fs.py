@@ -44,7 +44,7 @@ def read_text_file(p: Path) -> str:
     """Read text file with robust encoding handling.
 
     Tries utf-8-sig first (removes BOM), falls back to utf-8 with errors=ignore.
-    Also strips BOM character explicitly for safety.
+    Also includes heuristic repair for mojibake (e.g. "Ã¨" -> "è").
     """
     try:
         # Try utf-8-sig first (auto-removes BOM)
@@ -53,7 +53,20 @@ def read_text_file(p: Path) -> str:
         # Fallback to utf-8 with errors=ignore
         content = p.read_text(encoding="utf-8", errors="ignore")
     # Explicit BOM removal as safety net
-    return content.replace("\ufeff", "")
+    content = content.replace("\ufeff", "")
+    # Heuristic mojibake repair: detect typical patterns and attempt round-trip
+    # Only activate if we see common mojibake indicators
+    if "Ã" in content or "Â" in content:
+        try:
+            # Try latin1 -> utf-8 round trip to fix mojibake
+            repaired = content.encode("latin-1", errors="ignore").decode("utf-8", errors="ignore")
+            # Only accept if it looks better (fewer mojibake patterns)
+            if "Ã" not in repaired and "Â" not in repaired:
+                content = repaired
+        except Exception:
+            # Fail silently if repair doesn't work
+            pass
+    return content
 
 
 def chunk_text(text: str, size: int = 1200, overlap: int = 200) -> Iterable[Tuple[int, str]]:
