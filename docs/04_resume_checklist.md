@@ -1,69 +1,180 @@
-# Resume Checklist — RAG VE PoC
+# Resume Checklist (Ripartire Domani)
 
-> Se riavvio domani, ecco cosa faccio subito per orientarmi e partire.
+**Date:** 2026-03-02  
+**Status:** Ready to restart from M0-CC-05.2 baseline (repo pushed to GitHub)
 
-## 1. Eseguire comandi di verifica
+---
 
+## Morning Startup (10 min)
+
+### 1. Check Environment
 ```powershell
-# 1.1 Posizionarsi nella root del progetto
 cd C:\Users\D.Giro\280226_RAG_VE_Code
-
-# 1.2 Controllare presenza file critici
-ls docker-compose.yml, README.md, scripts\db_init.sql
-
-# 1.3 Guardare audit summary
-Get-Content _cc_status\audit\latest\audit_summary.json | ConvertFrom-Json | Format-List
-
-# 1.4 Visualizzare checkpoint status
-Get-Content _cc_status\checkpoint_status.md
-
-# 1.5 Controllare lo stato Git
-git status --short
-git log --oneline -1  # l'ultimo commit dovrebbe menzionare "CC-03.1" per conferma hardening compose
-
-# 1.5 Elencare struttura repo veloce
-(Get-ChildItem -Recurse -Depth 2).FullName
+docker compose version
+docker ps -a
 ```
 
-(max 5 comandi per mantenere checklist snella)
-
-## 2. Dove guardare per capire cosa è già stato fatto
-
-- `docs/00_repo_audit.md`: audit completo con lista file, gap e suggerimenti.
-- `_cc_status/checkpoint_status.md`: indica lo stato dell’ultimo task completato.
-- `_cc_status/audit/latest/*` (soprattutto `repo_tree.txt` e `git_status.txt`).
-- Cartella `scripts/` per eventuale script utility (`repo_audit.py`).
-
-## 3. Eseguire e testare ambiente Docker
-
+### 2. Start Services
 ```powershell
-# 3.a Avviare servizi (DB prisma placeholder)
 docker compose up -d
 
-# 3.b Verificare tabelle nel DB
-# (richiede .env con credenziali)
-docker compose exec db psql -U $env:POSTGRES_USER -d $env:POSTGRES_DB -c "\dt"
+# Wait for DB healthcheck (~30 sec)
+Start-Sleep -Seconds 30
 
-# 3.c Reset completo e rimozione volume
-docker compose down -v
- 
-# 3.d Verificare health dell'API
-curl http://localhost:8000/health
-
-# 3.e Test rapido endpoint query (ritorna stub)
-curl -X POST http://localhost:8000/api/v1/query \
-	-H "Content-Type: application/json" \
-	-d '{"query":"test"}'
+# Verify all running
+docker compose ps
 ```
 
-## 4. Prossimo task suggerito (CC-05)
+### 3. Test API Health
+```powershell
+curl http://localhost:8000/health
+# Expected: {"status":"ok","database":"connected"}
+```
 
-**Nota:** CC-04.2 è stato committato (hash visibile in checkpoint) con aggiornamenti SRS/ranking/health semantics; l'API ora restituisce `source_path` e usa 503 su DB failure.
+---
 
-**Task successivo:** sviluppare il componente `worker/` per l'ingest da filesystem (monitor cartelle), chunking dei documenti e popolamento della tabella `chunks`; prevedere il mapping `source_path -> kb_namespace` e prime regole di dedup.  
-Perché: senza ingest automatico e popolamento di `chunks` le query dell'API restano vuote; CC-05 abilita dati reali per test end-to-end.
+## Ingest Workflow
 
+### If adding new data:
+```powershell
+# 1. Place files in ./data/inbox/<namespace>/
+#    (e.g., ./data/inbox/demo/ for demo KB)
 
-## 4. Nota operativa
+# 2. Run ingest (worker profile)
+docker compose --profile manual run --rm worker --kb demo --path /data/inbox/demo
 
-Dopo git init, aggiornare `docs/03_project_status_snapshot.md` e `docs/04_resume_checklist.md` con eventuali nuove evidenze e continuare a usare lo script di audit per generare checkpoint.
+# 3. Wait for JSON output (shows docs_new, chunks_inserted)
+```
+
+### If reingesting same KB (e.g., after fixing documents):
+```powershell
+# Worker deduplicates by content_hash, so re-running is safe
+# (Identical files → skipped; changed files → new chunks inserted)
+
+docker compose --profile manual run --rm worker --kb demo --path /data/inbox/demo
+```
+
+---
+
+## Test Query
+
+```powershell
+# PowerShell syntax
+$body = @{query = "search term"; top_k = 3} | ConvertTo-Json
+
+curl -X POST http://localhost:8000/api/v1/query `
+  -Headers @{"Content-Type" = "application/json"} `
+  -Body $body
+```
+
+---
+
+## Troubleshooting
+
+### ❌ DB fails to start
+```powershell
+# Check logs
+docker compose logs db
+
+# Reset (WARNING: deletes all data)
+docker compose down -v
+docker compose up -d
+```
+
+### ❌ API 503 (service unavailable)
+```powershell
+# DB not healthy yet
+docker compose logs api
+
+# Wait 30+ seconds, restart api
+docker compose restart api
+```
+
+### ❌ Worker fails with import error
+```powershell
+# Ensure docker-compose.yml has correct entrypoint:
+# entrypoint: ["python", "-m", "app.ingest_fs"]
+
+# Rebuild if docker-compose.yml changed:
+docker compose up -d --build
+```
+
+### ❌ Ingest shows "0 files found"
+```powershell
+# Check file path:
+# - Correct format: /data/inbox/<namespace>/
+# - Files must be: .txt, .md, .csv, .json
+
+# Verify from host (Windows path):
+dir ".\data\inbox\demo"
+```
+
+### ❌ Host path not visible inside container
+```powershell
+# Windows absolute paths (C:\Users\...) are not mounted; worker looks under /data.
+# Convert or move files into the mapped directory, e.g.:
+#   C:\Users\...\project\data\inbox\demo -> /data/inbox/demo inside container
+# Use Docker Desktop file sharing or ensure volume mount covers that location.
+```
+
+### ❌ Ingest encoding issue (BOM or mixed UTF-8)
+```
+# Worker handles this automatically:
+# - Tries utf-8-sig (removes BOM)
+# - Falls back to utf-8 with errors=ignore
+# - Strips \ufeff explicitly
+
+# If still failing: check file for NUL bytes or binary content
+```
+
+### ❌ Worker profile not recognized
+```powershell
+# Verify docker-compose.yml has:
+# worker:
+#   ...
+#   profiles:
+#     - manual
+
+# Required syntax: --profile manual (not --profile=manual)
+docker compose --profile manual run --rm worker --kb demo --path /data/inbox/demo
+```
+
+---
+
+## Key Commands (Copy-Paste)
+
+```powershell
+# Full reset + restart
+docker compose down -v
+docker compose up -d
+Start-Sleep -Seconds 30
+
+# Ingest demo KB
+docker compose --profile manual run --rm worker --kb demo --path /data/inbox/demo
+
+# Query
+curl -X POST http://localhost:8000/api/v1/query `
+  -Headers @{"Content-Type" = "application/json"} `
+  -Body '{"query":"bandi","top_k":3}'
+
+# Stop
+docker compose down
+```
+
+---
+
+## What's Working
+
+✅ DB init (pgvector, extensions, schema)  
+✅ API endpoints (/health, /api/v1/query)  
+✅ Filesystem ingest with encoding hardening  
+✅ Vector search (pgvector + ORDER BY POSITION)  
+✅ Deduplication by content_hash  
+✅ Worker manual profile (on-demand only)  
+
+## What's NOT Yet
+
+❌ LLM synthesis (retrieval-only for now)  
+❌ Multi-model embeddings  
+❌ Auth/RBAC  
+❌ Query caching

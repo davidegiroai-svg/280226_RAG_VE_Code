@@ -4,3 +4,7 @@ _cc_status/**
 **/secrets/**
 __pycache__/
 *.log
+# Local inbox data (never commit)
+data/inbox/**
+!data/inbox/.gitkeep
+!data/inbox/**/.gitkeep

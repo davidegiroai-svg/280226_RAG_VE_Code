@@ -1,99 +1,130 @@
-# Project Status Snapshot — RAG VE PoC
+# Project Status Snapshot (post CC-05.2)
 
-**Timestamp:** 2026-02-28T15:08:36
-**Project root:** `C:\Users\D.Giro\280226_RAG_VE_Code`
+**Date:** 2026-03-02  
+**Last Commit:** `610e100` — M0: CC-05.2 fix mojibake in ingest  
+**Baseline:** M0 (multi-KB filesystem ingest → chunks → retrieval API; encoding + mojibake handling)
 
----
-
-## Stato attuale del repository
-
-- **Git abilitato**: `.git/` presente con commit iniziale (mese/anno 2026, vedi log in `.git/logs/HEAD`).
-- `.gitignore` esiste e filtra `_cc_status/`, env e cache.
-- **CC-03 completato**: ora disponibili i seguenti file runnable:
-  - `docker-compose.yml` (containerizzazione di DB e servizi base, healthcheck incluso, porte e credenziali configurabili)
-  - `scripts/db_init.sql` (schema DB di base già definito)
-  - `.env.example` (template variabili ambiente)
-  - `docs/10_run_local.md` (runbook con istruzioni di avvio/verifica/reset)
-- **CC-03.1 completato**: compose hardening (rimozione POSTGRES_PORT dall'env, commenti corretti) e runbook ampliato con comandi PowerShell + nota reset DB quando si cambiano credenziali.
-- **CC-04 completato**: servizio `api` aggiunto al docker-compose e skeleton FastAPI con `/health` e `/api/v1/query`.
-- **CC-04.1 completato**: migliorata robustezza query (min_length validation, ILIKE search, excerpt truncation) e rinomine nei moduli; i parametri POST/GET ora hanno controllo Pydantic.
-- **CC-04.2 completato**: align schema SRS (`source_path`), ranking usa POSITION, `/health` returns 503 if DB disconnected; runbook updated. Commit hash a71bfbc.
-
-> Con questi artefatti è possibile avviare localmente il database e l'API via `docker compose up`, osservare il healthcheck, testare `/health` e richiedere `/api/v1/query` (stub).  
-> Esempio: `curl -X POST http://localhost:8000/api/v1/query -H "Content-Type: application/json" -d '{"query":"bandi","top_k":3}'`.
-> Il backend API gestisce input invalidi (query vuota) e ritorna risposte placeholder; la logica di ingest/embedding/citazioni è ancora da implementare per ottenere risposte complete.
-
-### Contesto attuale
-
-Cartelle presenti:
-  - `docs/` (contiene report audit e runbook)
-  - `scripts/` (contiene `repo_audit.py` e `db_init.sql`)
-  - `api/` (FastAPI skeleton, Dockerfile, requirements)
-  - `_cc_status/` con audit generati.
-Cartelle **mancanti**: `docs_source/`, `worker/`, `ui/`.
-- File chiave **ancora assenti** per completare M1:
-  - `README.md` (overview generale)
-
-Documentazione di progetto rimane limitata al report audit; nessun requisito/architettura definita nel repo.
-
-### Nota audit
-
-Il file `_cc_status/audit/latest/audit_summary.json` non si è aggiornato automaticamente dopo CC-03, suggerendo che lo script non è stato rieseguito. I nuovi file descritti sopra non compaiono nel summary.
-- Documentazione di progetto disponibile solo come report audit; nessun requisito/architettura definita nel repo.
-
-### Contenuti audit
-
-`_cc_status/audit/latest/` contiene:
-- `repo_tree.txt` (lista delle directory attuali)
-- `git_status.txt` (report, probabilmente vuoto perché non è un repo)
-- `risky_paths.txt` (nessuna corrispondenza)
-- `audit_summary.json` (presenze/assenze e timestamp)
-
-`_cc_status/checkpoint_status.md` indica che il TASK CC-01 è **DONE** (audit generato) e che CC-02 (git init) è stato eseguito con commit "M0 bootstrap: audit + docs baseline".
+**Repository:** pushed to GitHub at `https://github.com/davidegiroai-svg/280226_RAG_VE_Code.git` (remote `origin`).
 
 ---
 
-## Gap per raggiungere milestone M0/M1
+## Runnable Components
 
-- **Stato post-CC-03**: Docker Compose e schema DB sono presenti; un runbook descrive come avviare il DB e verificare le tabelle.
+### ✅ Database (PostgreSQL + pgvector)
+- **Status:** Initialized and healthy
+- **Startup:** Automatic with `docker compose up -d`
+- **Schema:** knowledge_base, documents, chunks, ingest_job, query_log
+- **Embedding dim:** 1536 (pgvector)
+- **Persistence:** Volume `pgdata` (survives recreate)
 
- **M0 runnable** adesso richiede ancora (per arrivare a un flow ingest→query minimale):
-  1. Fornire un `README.md` con overview e istruzioni.
-  2. Implementare il componente `worker/` per ingest filesystem, chunking e popolamento della tabella `chunks`.
-  3. Integrare embedding (locale o provider) e citazioni nel backend query (sostituire il placeholder).
-  4. Facoltativo: rieseguire lo script di audit per aggiornare summary con i nuovi file.
+### ✅ API (FastAPI)
+- **Status:** Live on `http://localhost:8000`
+- **Startup:** Automatic with `docker compose up -d`
+- **Endpoints:**
+  - `GET /health` — DB connection health check (returns 503 if DB down)
+  - `POST /api/v1/query` — Vector search & retrieval
+    - Request: `{"query": "...", "kb": "...", "top_k": 5}`
+    - Response: `{"answer": "...", "sources": [...]}`
 
-- **M1** (MVP funzionante) richiede sviluppo e deploy dei componenti applicativi (ingest, query, UI). Attualmente nessuno di questi è presente.
-
-
----
-
-## Decisioni / assunzioni già in piedi
-
-- Nessuna decisione tecnica è registrata oltre al fatto che il repo esiste e che un audit script (`repo_audit.py`) è stato generato e eseguito.
-- L’unica ipotesi implicita: progetto dovrebbe avere stack Docker e DB, dato che l’audit controlla la presenza di `docker-compose.yml` e `db_init.sql`.
-- L’operating model (non accessibile localmente perché `docs_source` mancante) non è parte del repo.
-
----
-
-## Rischi & blocchi attuali
-
-- **Rischio maggiore**: mancanza di controllo versione (.git) rende difficile tracciamento e collaborazione.
-- **Blocco operativo**: non esistono artefatti di deploy (compose, db schema); non è possibile avviare nulla.
-- Assenza di documentazione tecnica oltre il report di audit impedisce riavvio veloce for team.
+### ⚙️ Worker (Filesystem Ingest)
+- **Status:** On-demand only (profile: `manual`)
+- **Startup:** NOT automatic (must explicitly request)
+- **Encoding:**
+  - Robust UTF-8 handling (utf-8-sig for BOM removal)
+  - Fallback to utf-8 with errors=ignore
+  - Safe for mixed-encoding text files
+- **Supported formats:** .txt, .md, .csv, .json
 
 ---
 
-## Prossimi 5 task consigliati
+## How to Run Locally
 
-1. **CC-02** – Inizializzare repository Git, aggiungere `.gitignore` e primo commit.
-2. **CC-03** – Aggiungere un file `docker-compose.yml` di base con Postgres/pgvector e placeholder backend.
-3. **CC-04** – Creare `scripts/db_init.sql` con schema minimale (tables knowledge_base, documents, chunks).
-4. **CC-05** – Costruire struttura documentazione: `docs_source/docs_generale/` con PRD/ARCHITECTURE/SRS templates.
-5. **CC-06** – Redigere `README.md` con overview progetto e istruzioni iniziali per sviluppatori.
+### Prerequisites
+```powershell
+# Required: Docker Desktop running
+docker compose version
+```
 
-*(task presi anche in ordine cronologico suggerito dal report di audit)*
+### 1. Initial Setup
+```powershell
+cp .env.example .env
+# Edit .env if needed (default credentials: rag:rag_password_change_me)
+
+docker compose up -d
+
+# Wait ~30 seconds for DB initialization
+Start-Sleep -Seconds 30
+
+docker compose ps
+```
+
+### 2. Ingest Data (Manual Profile)
+```powershell
+# Ingest from /data/inbox/demo (namespace: "demo")
+docker compose --profile manual run --rm worker --kb demo --path /data/inbox/demo
+
+# Or custom path/namespace:
+# docker compose --profile manual run --rm worker --kb my_kb --path /data/inbox/custom_folder
+```
+
+Expected output:
+```json
+{
+  "kb": "demo",
+  "path": "/data/inbox/demo",
+  "files_found": N,
+  "files_read": N,
+  "documents_new": M,
+  "documents_skipped_existing": K,
+  "chunks_inserted": Z
+}
+```
+
+### 3. Test Query (PowerShell)
+```powershell
+# Health check
+curl http://localhost:8000/health
+
+# Search query
+$body = @{query = "bandi"; top_k = 3} | ConvertTo-Json
+curl -X POST http://localhost:8000/api/v1/query `
+  -Headers @{"Content-Type" = "application/json"} `
+  -Body $body
+```
+
+### 4. Cleanup
+```powershell
+# Stop all services (keep volumes)
+docker compose down
+
+# Stop and remove all data
+docker compose down -v
+```
 
 ---
 
-**Nota**: una volta completati gli step M0, sarà possibile avviare un PoC minimale con un semplice servizio container.
+## Stato M0
+
+- All components required for the minimal MVP are in place and runnable with a single `docker compose up -d` followed by a manual worker run.
+- Encoding robustness now includes BOM stripping and heuristic mojibake repair (see ingest_fs.py).
+- Worker remains under `manual` profile; it will not start with the default `up` command.
+- Repository has been initialized and pushed to GitHub (`origin` remote).
+
+---
+
+## Notes
+
+- **No full rebuild needed:** If only code changes (not schema), restart API:
+  ```powershell
+  docker compose restart api
+  ```
+
+- **DB reset if schema changes:**
+  ```powershell
+  docker compose down -v
+  docker compose up -d
+  ```
+
+- **Worker encoding fallback:** Files with BOM or mixed encoding are handled gracefully
+
+- **API is retrieval-only:** No LLM synthesis; responses are raw chunk excerpts + metadata
