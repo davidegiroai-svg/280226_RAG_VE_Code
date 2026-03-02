@@ -1,11 +1,10 @@
 # RAG VE API - Main application
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from typing import Optional, List, Any
+from typing import Optional, List
 
 from .db import test_connection, get_db_cursor
-from .query import build_query_sql, parse_results, log_query
+from .query import build_query_sql, parse_results
 
 app = FastAPI(
     title="RAG VE API",
@@ -13,13 +12,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
-
 # Request/Response models
 class QueryRequest(BaseModel):
     query: str = Field(..., min_length=1, description="Search query text")
     kb: Optional[str] = Field(None, description="Optional KB namespace to filter")
     top_k: Optional[int] = Field(5, ge=1, le=20, description="Number of results to return (1-20)")
-
 
 class Source(BaseModel):
     id: str
@@ -28,16 +25,13 @@ class Source(BaseModel):
     source_path: Optional[str] = None
     excerpt: str
 
-
 class QueryResponse(BaseModel):
     answer: str
     sources: List[Source]
 
-
 class HealthResponse(BaseModel):
     status: str
     database: str
-
 
 @app.get("/health")
 def health_check():
@@ -46,15 +40,11 @@ def health_check():
         db_ok = test_connection()
         if not db_ok:
             raise HTTPException(status_code=503, detail="Database connection failed")
-        return HealthResponse(
-            status="ok",
-            database="connected"
-        )
+        return HealthResponse(status="ok", database="connected")
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Database connection failed: {str(e)}")
-
 
 @app.post("/api/v1/query")
 def query_api(request: QueryRequest):
@@ -89,21 +79,9 @@ def query_api(request: QueryRequest):
         if not sources:
             answer = "No matching documents found."
 
-        return QueryResponse(
-            answer=answer,
-            sources=sources
-        )
+        return QueryResponse(answer=answer, sources=sources)
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Query execution failed: {str(e)}")
-
-
-@app.get("/api/v1/query")
-def query_get(query: str = Field(..., min_length=1), kb: Optional[str] = None, top_k: Optional[int] = 5):
-    """
-    GET version of query API (for testing).
-    Same parameters as POST /api/v1/query
-    """
-    return query_api(QueryRequest(query=query, kb=kb, top_k=top_k))

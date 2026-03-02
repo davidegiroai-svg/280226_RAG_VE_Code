@@ -17,6 +17,7 @@
 - **CC-03.1 completato**: compose hardening (rimozione POSTGRES_PORT dall'env, commenti corretti) e runbook ampliato con comandi PowerShell + nota reset DB quando si cambiano credenziali.
 - **CC-04 completato**: servizio `api` aggiunto al docker-compose e skeleton FastAPI con `/health` e `/api/v1/query`.
 - **CC-04.1 completato**: migliorata robustezza query (min_length validation, ILIKE search, excerpt truncation) e rinomine nei moduli; i parametri POST/GET ora hanno controllo Pydantic.
+- **CC-04.2 completato**: align schema SRS (`source_path`), ranking usa POSITION, `/health` returns 503 if DB disconnected; runbook updated. Commit hash a71bfbc.
 
 > Con questi artefatti è possibile avviare localmente il database e l'API via `docker compose up`, osservare il healthcheck, testare `/health` e richiedere `/api/v1/query` (stub).  
 > Esempio: `curl -X POST http://localhost:8000/api/v1/query -H "Content-Type: application/json" -d '{"query":"bandi","top_k":3}'`.

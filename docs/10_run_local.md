@@ -117,7 +117,59 @@ Esempio di risposta:
 
 ---
 
-## 7. Reset (se necessario)
+## 7. Ingest da filesystem
+
+Per inserire documenti dal filesystem (es. `./data/inbox/<kb>/`):
+
+```bash
+# Eseguire l'ingest su una specifica KB e cartella
+docker compose --profile manual run --rm worker --kb demo --path /data/inbox/demo
+```
+
+Il worker processa solo file `.txt`, `.md`, `.csv`, `.json` (UTF-8) e:
+- crea la KB se non esiste
+- inserisce documenti con deduplicazione
+- chunka il testo in pezzi da 1200 caratteri con 200 di overlap
+- inserisce chunks con metadata
+
+---
+
+## 8. Windows/PowerShell
+
+Se usi PowerShell su Windows, i comandi sono identici. Esempi:
+
+```powershell
+# Copia .env
+Copy-Item .env.example .env
+
+# Avvio
+docker compose up -d
+
+# Verifica
+docker compose ps
+
+# Esegui ingest
+docker compose --profile manual run --rm worker --kb demo --path /data/inbox/demo
+```
+
+**Nota encoding/BOM:** Se vedi caratteri strani (es. `ï»¿` o `Ã¨`) negli estratti, rigenera i file in UTF-8 **senza BOM**, oppure lascia che sia `ingest_fs.py` a gestirli automaticamente (usa `utf-8-sig` per rimuovere BOM).
+
+---
+
+## 9. Query demo
+
+Dopo l'ingest, query i documenti:
+
+```bash
+# Test POST /api/v1/query
+curl -X POST http://localhost:8000/api/v1/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "bandi", "top_k": 3}'
+```
+
+---
+
+## 10. Reset (se necessario)
 
 Per fermare e rimuovere tutto incluso il volume dati:
 

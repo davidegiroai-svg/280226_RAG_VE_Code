@@ -1,23 +1,15 @@
-# RAG VE PoC - Docker Compose
-# servizio DB: Postgres con estensione pgvector per storage vettoriale
-# servizio API: FastAPI backend
-
 services:
   db:
-    image: pgvector/pgvector:pg16
-
+    image: "pgvector/pgvector:pg16"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-rag}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rag_password_change_me}
-      POSTGRES_DB: ${POSTGRES_DB:-rag}
-
+      POSTGRES_USER: "${POSTGRES_USER:-rag}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-rag_password_change_me}"
+      POSTGRES_DB: "${POSTGRES_DB:-rag}"
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
-
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./scripts/db_init.sql:/docker-entrypoint-initdb.d/01_db_init.sql:ro
-
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rag} -d ${POSTGRES_DB:-rag}"]
       interval: 10s
@@ -30,14 +22,31 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - POSTGRES_USER=${POSTGRES_USER:-rag}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-rag_password_change_me}
-      - POSTGRES_DB=${POSTGRES_DB:-rag}
+      DB_HOST: "db"
+      DB_PORT: "5432"
+      POSTGRES_USER: "${POSTGRES_USER:-rag}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-rag_password_change_me}"
+      POSTGRES_DB: "${POSTGRES_DB:-rag}"
     depends_on:
       db:
         condition: service_healthy
+
+  worker:
+    build: ./api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: "db"
+      DB_PORT: "5432"
+      POSTGRES_USER: "${POSTGRES_USER:-rag}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-rag_password_change_me}"
+      POSTGRES_DB: "${POSTGRES_DB:-rag}"
+    volumes:
+      - ./data:/data:ro
+    entrypoint: ["python", "-m", "app.ingest_fs"]
+    profiles:
+      - manual
 
 volumes:
   pgdata:
