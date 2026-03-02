@@ -126,6 +126,16 @@ Per inserire documenti dal filesystem (es. `./data/inbox/<kb>/`):
 docker compose --profile manual run --rm worker --kb demo --path /data/inbox/demo
 ```
 
+**Nota Windows/Git Bash:** Se usi Git Bash/MSYS su Windows, i path tipo `/data/...` potrebbero essere convertiti in `C:/Program Files/Git/...`. In questo caso:
+- Usa `MSYS_NO_PATHCONV=1` prima del comando, oppure
+- Esegui i comandi da PowerShell
+
+Esempio con `MSYS_NO_PATHCONV=1`:
+
+```bash
+MSYS_NO_PATHCONV=1 docker compose --profile manual run --rm worker --kb demo --path /data/inbox/demo
+```
+
 Il worker processa solo file `.txt`, `.md`, `.csv`, `.json` (UTF-8) e:
 - crea la KB se non esiste
 - inserisce documenti con deduplicazione
