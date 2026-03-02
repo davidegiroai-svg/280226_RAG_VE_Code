@@ -39,7 +39,7 @@ CREATE TABLE chunks (
     metadata jsonb DEFAULT '{}'::jsonb,
     embedding_model text,
     embedding_dim int,
-    embedding vector(1536),
+    embedding vector(768),
     ingest_date timestamptz DEFAULT now()
 );
 
@@ -47,6 +47,12 @@ CREATE TABLE chunks (
 CREATE INDEX idx_chunks_kb_id ON chunks(kb_id);
 CREATE INDEX idx_chunks_kb_namespace ON chunks(kb_namespace);
 CREATE INDEX idx_chunks_document_id ON chunks(document_id);
+
+-- Indice vettoriale per cosine similarity (ivfflat con opclass vector_cosine_ops)
+-- Dimensione 768 per compatibilita' con modello Ollama (nomic-embed-text)
+CREATE INDEX idx_chunks_embedding_ivfflat ON chunks
+USING ivfflat (embedding vector_cosine_ops)
+WITH (lists = 100);
 
 -- Tabella ingest_job
 CREATE TABLE ingest_job (

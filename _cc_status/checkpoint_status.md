@@ -84,6 +84,17 @@
 
 ---
 
+## TASK M1_TASK_01_DB — pgvector schema per Vector Search
+**Status:** DONE
+**Timestamp:** 2026-03-02T13:57:00
+**Changes:**
+- `scripts/db_init.sql`: embedding changed from `vector(1536)` to `vector(768)`
+- `scripts/db_init.sql`: aggiunto indice `idx_chunks_embedding_ivfflat` con `vector_cosine_ops`
+- `docs/10_run_local.md`: aggiunta sezione "5. Embedding (vector search)"
+- Verifica: DB re-init completato, schema verificato (`docker compose exec db psql ... \d chunks`)
+
+---
+
 ## TASK CC-05.2 — Fix mojibake in ingest (UTF-8/Latin1 repair)
 **Status:** DONE
 **Timestamp:** 2026-03-02T11:00:00
@@ -113,3 +124,4 @@
 *Checkpoint updated by TASK CC-04.2*
 *Checkpoint updated by TASK CC-05.1*
 *Checkpoint updated by TASK CC-05.2*
+*Checkpoint updated by TASK M1_TASK_01_DB*

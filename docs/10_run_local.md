@@ -63,7 +63,25 @@ Dovresti vedere:
 
 ---
 
-## 5. Windows/PowerShell
+## 5. Embedding (vector search)
+
+**Dimensione embedding vincolante: 768**
+
+Il sistema usa `vector(768)` per compatibilità con il modello locale **Ollama `nomic-embed-text`** (default per M1).
+
+Se hai dati con vector(1536) da una precedente installazione, devi re-inizializzare il DB:
+
+```powershell
+# PowerShell - Comando per re-init DB (cancella tutti i dati!)
+docker compose down -v
+docker compose up -d
+```
+
+**Nota:** Il re-init cancella permanentemente tutti i dati nel DB. Fai backup prima di eseguire se necessario.
+
+---
+
+## 6. Windows/PowerShell
 
 Se usi PowerShell su Windows, i comandi sono identici. Esempi:
 
