@@ -125,3 +125,19 @@
 *Checkpoint updated by TASK CC-05.1*
 *Checkpoint updated by TASK CC-05.2*
 *Checkpoint updated by TASK M1_TASK_01_DB*
+
+---
+
+## TASK M1_TASK_03_Ingest_SaveEmbedding — embedding vector storage in chunks
+**Status:** DONE  
+**Timestamp:** 2026-03-02
+
+**Changes:**
+- `api/app/ingest_fs.py`: batch embedding via `embed_texts()` (import da `app.embedding`)
+- `api/app/ingest_fs.py`: insert su `chunks.embedding`, `chunks.embedding_model`, `chunks.embedding_dim`
+- `api/app/ingest_fs.py`: conversione embedding list -> stringa pgvector con `vector_to_str()`
+
+**Verification (example):**
+- `docker compose run --rm worker --kb test_kb --path /data/inbox/demo`
+- `SELECT COUNT(*) FROM chunks WHERE kb_namespace='test_kb' AND embedding IS NOT NULL;`  (expected > 0)
+- `SELECT embedding_model, embedding_dim, COUNT(*) FROM chunks WHERE kb_namespace='test_kb' AND embedding IS NOT NULL GROUP BY 1,2;`

@@ -13,10 +13,12 @@ import hashlib
 import json
 import os
 from pathlib import Path
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, List
 
 import psycopg2
 from psycopg2.extras import Json
+
+from app.embedding import embed_texts, EmbeddingError
 
 
 def _env(name: str, default: str) -> str:
@@ -124,16 +126,37 @@ def upsert_document(cur, kb_id: str, source_uri: str, titolo: str, content_hash:
     return row2[0], False
 
 
+def vector_to_str(vec: List[float]) -> str:
+    """Convert Python list to PostgreSQL vector string format."""
+    return "[" + ",".join(str(x) for x in vec) + "]"
+
+
 def insert_chunks(cur, kb_id: str, kb_namespace: str, doc_id: str, source_path: str, file_name: str, text: str) -> int:
-    inserted = 0
+    # Extract chunks first (to keep dedup logic identical)
+    chunks_data = []
     for chunk_index, chunk in chunk_text(text, 1200, 200):
+        chunks_data.append((chunk_index, chunk))
+
+    if not chunks_data:
+        return 0
+
+    # Compute embeddings for all chunks in batch
+    chunk_texts = [c[1] for c in chunks_data]
+    try:
+        embeddings, embedding_model, embedding_dim = embed_texts(chunk_texts)
+    except EmbeddingError as e:
+        raise RuntimeError(f"Embedding failed for document '{file_name}': {e}")
+
+    # Insert chunks with embedding data
+    inserted = 0
+    for (chunk_index, chunk), embedding in zip(chunks_data, embeddings):
         meta = {"source_path": source_path, "file_name": file_name, "chunk_index": chunk_index}
         cur.execute(
             """
-            INSERT INTO chunks (document_id, kb_id, kb_namespace, chunk_index, testo, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO chunks (document_id, kb_id, kb_namespace, chunk_index, testo, metadata, embedding, embedding_model, embedding_dim)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
-            (doc_id, kb_id, kb_namespace, chunk_index, chunk, Json(meta)),
+            (doc_id, kb_id, kb_namespace, chunk_index, chunk, Json(meta), vector_to_str(embedding), embedding_model, embedding_dim),
         )
         inserted += 1
     return inserted
