@@ -125,6 +125,48 @@
 *Checkpoint updated by TASK CC-05.1*
 *Checkpoint updated by TASK CC-05.2*
 *Checkpoint updated by TASK M1_TASK_01_DB*
+*Checkpoint updated by TASK M1_TASK_02_EmbeddingAdapter*
+*Checkpoint updated by TASK M1_TASK_03_Ingest_SaveEmbedding*
+*Checkpoint updated by TASK M1_TASK_04_Query_VectorSearch*
+
+---
+
+## TASK M1_TASK_04_Query_VectorSearch — vector similarity search in API
+**Status:** DONE
+**Timestamp:** 2026-03-02T18:30:00
+**Changes:**
+- `api/app/query.py`: import `embed_text` from `.embedding`
+- `api/app/query.py`: aggiunta funzione `vector_to_str()` per convertire liste Python in PostgreSQL vector string format
+- `api/app/query.py`: modifica `build_query_sql()` per usare pgvector cosine similarity (`embedding <=> %s`)
+- `api/app/query.py`: modifica `parse_results()` per calcolare `score = 1.0 - distance`
+- `api/app/main.py`: import `embed_text`, calcolo embedding query in `query_api()`
+- `docs/10_run_local.md`: aggiunta sezione "7. Vector Search Query API" con esempi PowerShell/CLI
+
+**Verification:**
+```powershell
+# Windows/PowerShell
+$response = Invoke-RestMethod -Uri 'http://localhost:8000/api/v1/query' -Method POST -ContentType 'application/json' -Body '{"query": "bandi", "top_k": 3, "kb": "demo"}'
+$response.sources | Select-Object id, score, source_path
+```
+
+**Esempio Output:**
+```json
+{
+  "id": "c6350ed7-4617-48f2-816f-ed7892cbf223",
+  "score": 0.413,
+  "source_path": "/data/inbox/demo/test_mojibake.txt"
+},
+{
+  "id": "627dcd6f-0b2a-4a2d-ad08-a6e1e66354c8",
+  "score": 0.366,
+  "source_path": "/data/inbox/demo/demo2.txt"
+},
+{
+  "id": "c68a4fa2-4837-480d-a219-f800f2ce0196",
+  "score": 0.365,
+  "source_path": "/data/inbox/demo/demo.txt"
+}
+```
 
 ---
 

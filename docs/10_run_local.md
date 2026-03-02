@@ -135,7 +135,65 @@ Esempio di risposta:
 
 ---
 
-## 7. Ingest da filesystem
+## 7. Vector Search Query API
+
+Dopo l'ingest, puoi query i documenti usando la ricerca vettoriale (cosine similarity):
+
+### Windows/PowerShell
+
+```powershell
+# Test POST /api/v1/query con vector search
+$response = Invoke-RestMethod -Uri 'http://localhost:8000/api/v1/query' -Method POST -ContentType 'application/json' -Body '{"query": "bandi", "top_k": 3, "kb": "demo"}'
+$response | ConvertTo-Json -Depth 10
+```
+
+### Linux/macOS
+
+```bash
+curl -X POST http://localhost:8000/api/v1/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "bandi", "top_k": 3, "kb": "demo"}'
+```
+
+Esempio di risposta (con 3 risultati ordinati per score):
+
+```json
+{
+  "answer": "Retrieval-only response. No LLM synthesis yet.",
+  "sources": [
+    {
+      "id": "c6350ed7-4617-48f2-816f-ed7892cbf223",
+      "score": 0.413,
+      "kb_namespace": "demo",
+      "source_path": "/data/inbox/demo/test_mojibake.txt",
+      "excerpt": "Questo �� un file di test con caratteri accentati..."
+    },
+    {
+      "id": "627dcd6f-0b2a-4a2d-ad08-a6e1e66354c8",
+      "score": 0.366,
+      "kb_namespace": "demo",
+      "source_path": "/data/inbox/demo/demo2.txt",
+      "excerpt": "Questo �� un secondo file di test..."
+    },
+    {
+      "id": "c68a4fa2-4837-480d-a219-f800f2ce0196",
+      "score": 0.365,
+      "kb_namespace": "demo",
+      "source_path": "/data/inbox/demo/demo.txt",
+      "excerpt": "Questo �� un file di test per il PoC RAG VE..."
+    }
+  ]
+}
+```
+
+**Note:**
+- `score`: misura della similarit� cosine (1.0 = perfetta, 0.0 = nessuna somiglianza)
+- I risultati sono ordinati per score decrescente
+- Il filtro `kb` � opzionale: se omesso, cerca in tutte le KB
+
+---
+
+## 8. Ingest da filesystem
 
 Per inserire documenti dal filesystem (es. `./data/inbox/<kb>/`):
 

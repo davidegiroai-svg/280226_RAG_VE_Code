@@ -5,6 +5,7 @@ from typing import Optional, List
 
 from .db import test_connection, get_db_cursor
 from .query import build_query_sql, parse_results
+from .embedding import embed_text
 
 app = FastAPI(
     title="RAG VE API",
@@ -61,11 +62,15 @@ def query_api(request: QueryRequest):
     - sources: list of matching chunks with metadata
     """
     try:
+        # Calculate embedding for the query
+        query_vec, model_name, dim = embed_text(request.query)
+
         # Build and execute query
         sql, params = build_query_sql(
             query_text=request.query,
             kb_namespace=request.kb,
-            top_k=request.top_k
+            top_k=request.top_k,
+            query_vec=query_vec
         )
 
         with get_db_cursor() as cursor:
