@@ -36,7 +36,11 @@ Phases 1-5 delivered the end-to-end RAG pipeline: PostgreSQL+pgvector schema, Fa
   2. Each PDF chunk in the DB has page_start and page_end values matching the source page number
   3. Ingesting the same PDF twice produces no duplicate chunks (UNIQUE kb_id+content_hash enforced)
   4. Worker processes PDFs and TXT/MD/CSV/JSON in the same run without errors
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — DB migration columns + pymupdf4llm dependency (Wave 1)
+- [ ] 06-02-PLAN.md — TDD: read_pdf_chunks + insert_chunks branch + list_files extension (Wave 2)
 
 ### Phase 7: Upload API + Endpoint Aggiuntivi
 **Goal**: Gli utenti possono caricare file via REST e consultare la lista delle knowledge base e lo stato del DB
@@ -99,7 +103,7 @@ Phases 1-5 delivered the end-to-end RAG pipeline: PostgreSQL+pgvector schema, Fa
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 6. PDF Ingest | v2.0 | 0/? | Not started | - |
+| 6. PDF Ingest | v2.0 | 0/2 | In planning | - |
 | 7. Upload API + Endpoint Aggiuntivi | v2.0 | 0/? | Not started | - |
 | 8. LLM Synthesis | v2.0 | 0/? | Not started | - |
 | 9. File Watcher | v2.0 | 0/? | Not started | - |
