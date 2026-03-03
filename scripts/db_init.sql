@@ -40,6 +40,9 @@ CREATE TABLE chunks (
     embedding_model text,
     embedding_dim int,
     embedding vector(768),
+    page_start integer,
+    page_end integer,
+    section_title text,
     ingest_date timestamptz DEFAULT now()
 );
 
