@@ -1,3 +1,19 @@
+---
+gsd_state_version: 1.0
+milestone: v2.0
+milestone_name: PDF + Upload + LLM + Watcher + Hybrid + Auth
+status: planning
+stopped_at: Phase 6 context gathered
+last_updated: "2026-03-03T18:59:43.622Z"
+last_activity: 2026-03-03 — Roadmap v2.0 created (phases 6-11, 25 requirements mapped)
+progress:
+  total_phases: 6
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
+---
+
 # State
 
 ## Project Reference
@@ -62,6 +78,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-03
-Stopped at: Roadmap v2.0 created — 25 requirements mapped to phases 6-11
-Resume file: None
+Last session: 2026-03-03T18:59:43.575Z
+Stopped at: Phase 6 context gathered
+Resume file: .planning/phases/06-pdf-ingest/06-CONTEXT.md
