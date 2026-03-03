@@ -1,6 +1,6 @@
 # Checkpoint Status
 
-**Checkpoint updated:** 2026-03-02T22:05:00 by M1_TASK_05_Runbook+Hardening
+**Checkpoint updated:** 2026-03-03T10:00:00 by M1_TASK_06_Final_Check
 
 ## TASK CC-01 — Bootstrap Repo + Audit Wrapper
 **Status:** DONE
@@ -131,6 +131,7 @@
 *Checkpoint updated by TASK M1_TASK_03_Ingest_SaveEmbedding*
 *Checkpoint updated by TASK M1_TASK_04_Query_VectorSearch*
 *Checkpoint updated by TASK M1_TASK_05_Runbook+Hardening*
+*Checkpoint updated by TASK M1_TASK_06_Final_Check*
 
 ---
 
@@ -222,3 +223,45 @@ $response = Invoke-RestMethod -Uri 'http://localhost:8000/api/v1/query' -Method 
 - `docker-compose.yml`: aggiunta nota su ` profiles: ["manual"]` per worker service
 - `api/.env.example`: rimossa `POSTGRES_PORT` (non necessaria per internal networking)
 - `docs/10_run_local.md`: aggiornato esempio `.env` senza POSTGRES_PORT
+
+---
+
+## TASK M2_PHASE6_PDF_INGEST — PDF ingest implementation
+**Status:** DONE
+**Timestamp:** 2026-03-03
+
+**Changes:**
+- `api/requirements.txt`: aggiunto pymupdf4llm>=0.0.17, pytest>=8.0.0, httpx>=0.27.0
+- `api/app/ingest_fs.py`: nuova funzione `read_pdf_chunks(p)` con pymupdf4llm page_chunks=True
+- `api/app/ingest_fs.py`: `list_files()` esteso con estensione `.pdf`
+- `api/app/ingest_fs.py`: `insert_chunks()` esteso con kwarg `file_path` — branch PDF salva page_start/page_end/section_title come colonne dedicate
+- `api/app/ingest_fs.py`: `main()` aggiornato — hash binario per PDF, passa file_path a insert_chunks
+- `docker-compose.yml`: aggiunto volume `./tests:/app/tests:ro` per eseguire pytest nel container
+- `tests/conftest.py`: aggiunto per configurare sys.path in Docker
+- `tests/test_ingest_pdf.py`: 7 test TDD (tutti PASSED)
+
+**Verification:**
+```bash
+docker compose exec api pytest tests/ -v
+# 8 passed in 0.44s
+```
+
+---
+
+## TASK M1_TASK_06_Final_Check — M1 closure
+**Status:** DONE
+**Timestamp:** 2026-03-03
+
+**Changes:**
+- `api/app/query.py`: fix params bug (kb_namespace optional)
+- `_cc_status/checkpoint_status.md`: cleanup duplicate M1_TASK_05, aggiunta M1_TASK_06
+
+**Verification:**
+```bash
+# End-to-end test
+docker compose up -d --build
+docker compose --profile manual run --rm worker --kb demo --path /data/inbox/demo
+docker compose exec db psql -U rag -d rag -c "SELECT COUNT(*) FROM chunks WHERE kb_namespace='demo' AND embedding IS NOT NULL;"
+# Query API con KB
+# Query API senza KB (kb=null)
+```

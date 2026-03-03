@@ -32,6 +32,8 @@ services:
       EMBEDDING_DIM: "${EMBEDDING_DIM:-768}"
       OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://host.docker.internal:11434}"
       EMBEDDING_TIMEOUT_S: "${EMBEDDING_TIMEOUT_S:-30}"
+    volumes:
+      - ./tests:/app/tests:ro
     depends_on:
       db:
         condition: service_healthy

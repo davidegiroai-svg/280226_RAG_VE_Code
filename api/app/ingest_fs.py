@@ -131,8 +131,58 @@ def vector_to_str(vec: List[float]) -> str:
     return "[" + ",".join(str(x) for x in vec) + "]"
 
 
-def insert_chunks(cur, kb_id: str, kb_namespace: str, doc_id: str, source_path: str, file_name: str, text: str) -> int:
-    # Extract chunks first (to keep dedup logic identical)
+def insert_chunks(
+    cur,
+    kb_id: str,
+    kb_namespace: str,
+    doc_id: str,
+    source_path: str,
+    file_name: str,
+    text: str,
+    *,
+    file_path: Path = None,
+) -> int:
+    # Branch PDF: usa read_pdf_chunks con page_start/page_end come colonne dedicate
+    if file_path is not None and file_path.suffix.lower() == ".pdf":
+        page_chunks = read_pdf_chunks(file_path)
+        valid_chunks = [(i, pc) for i, pc in enumerate(page_chunks) if pc["testo"].strip()]
+        if not valid_chunks:
+            return 0
+
+        chunk_texts_list = [pc["testo"] for _, pc in valid_chunks]
+        try:
+            embeddings, embedding_model, embedding_dim = embed_texts(chunk_texts_list)
+        except EmbeddingError as e:
+            raise RuntimeError(f"Embedding failed for PDF '{file_name}': {e}")
+
+        inserted = 0
+        for (chunk_index, pc), embedding in zip(valid_chunks, embeddings):
+            meta = {
+                "source_path": source_path,
+                "file_name": file_name,
+                "chunk_index": chunk_index,
+                "page_start": pc["page_start"],
+                "page_end": pc["page_end"],
+            }
+            cur.execute(
+                """
+                INSERT INTO chunks (
+                    document_id, kb_id, kb_namespace, chunk_index, testo,
+                    metadata, embedding, embedding_model, embedding_dim,
+                    page_start, page_end, section_title
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    doc_id, kb_id, kb_namespace, chunk_index, pc["testo"],
+                    Json(meta), vector_to_str(embedding), embedding_model, embedding_dim,
+                    pc["page_start"], pc["page_end"], pc["section_title"],
+                ),
+            )
+            inserted += 1
+        return inserted
+
+    # Comportamento originale per TXT/MD/CSV/JSON
     chunks_data = []
     for chunk_index, chunk in chunk_text(text, 1200, 200):
         chunks_data.append((chunk_index, chunk))
@@ -140,14 +190,12 @@ def insert_chunks(cur, kb_id: str, kb_namespace: str, doc_id: str, source_path: 
     if not chunks_data:
         return 0
 
-    # Compute embeddings for all chunks in batch
-    chunk_texts = [c[1] for c in chunks_data]
+    chunk_texts_list = [c[1] for c in chunks_data]
     try:
-        embeddings, embedding_model, embedding_dim = embed_texts(chunk_texts)
+        embeddings, embedding_model, embedding_dim = embed_texts(chunk_texts_list)
     except EmbeddingError as e:
         raise RuntimeError(f"Embedding failed for document '{file_name}': {e}")
 
-    # Insert chunks with embedding data
     inserted = 0
     for (chunk_index, chunk), embedding in zip(chunks_data, embeddings):
         meta = {"source_path": source_path, "file_name": file_name, "chunk_index": chunk_index}
@@ -162,8 +210,26 @@ def insert_chunks(cur, kb_id: str, kb_namespace: str, doc_id: str, source_path: 
     return inserted
 
 
+def read_pdf_chunks(p: Path) -> list:
+    """Legge un PDF con pymupdf4llm e restituisce chunk per pagina.
+
+    Ritorna lista di dict con chiavi: testo, page_start, page_end, section_title.
+    """
+    import pymupdf4llm
+    pages = pymupdf4llm.to_markdown(str(p), page_chunks=True)
+    result = []
+    for page in pages:
+        result.append({
+            "testo": page["text"],
+            "page_start": page["metadata"]["page"],
+            "page_end": page["metadata"]["page"],
+            "section_title": None,
+        })
+    return result
+
+
 def list_files(root: Path):
-    exts = {".txt", ".md", ".csv", ".json"}
+    exts = {".txt", ".md", ".csv", ".json", ".pdf"}
     for p in root.rglob("*"):
         if p.is_file() and p.suffix.lower() in exts:
             yield p
@@ -202,12 +268,20 @@ def main():
 
             for fp in files:
                 files_read += 1
-                text = read_text_file(fp)
-                if not text.strip():
-                    continue
+                is_pdf = fp.suffix.lower() == ".pdf"
+
+                if is_pdf:
+                    # Per PDF: hash dal contenuto binario, text non usato
+                    raw_bytes = fp.read_bytes()
+                    content_hash = hashlib.sha256(raw_bytes).hexdigest()
+                    text = ""
+                else:
+                    text = read_text_file(fp)
+                    if not text.strip():
+                        continue
+                    content_hash = sha256_text(text)
 
                 source_path = fp.as_posix()
-                content_hash = sha256_text(text)
                 titolo = fp.name
 
                 doc_id, inserted_new = upsert_document(cur, kb_id, source_path, titolo, content_hash)
@@ -216,7 +290,10 @@ def main():
                     continue
 
                 docs_new += 1
-                chunks_inserted += insert_chunks(cur, kb_id, kb_namespace, doc_id, source_path, fp.name, text)
+                chunks_inserted += insert_chunks(
+                    cur, kb_id, kb_namespace, doc_id, source_path, fp.name, text,
+                    file_path=fp,
+                )
 
         conn.commit()
         print("OK ingest completed")
