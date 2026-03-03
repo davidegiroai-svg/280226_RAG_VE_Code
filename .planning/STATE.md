@@ -4,30 +4,64 @@
 
 See: .planning/PROJECT.md (updated 2026-03-03)
 
-**Core value:** Recupero accurato dei chunk più rilevanti dai documenti della KB, con embedding locale (Ollama) e zero dipendenze cloud.
-**Current focus:** Milestone v2.0 — defining requirements
+**Core value:** Recupero accurato dei chunk piu rilevanti dai documenti della KB, con embedding locale (Ollama) e zero dipendenze cloud.
+**Current focus:** Phase 6 — PDF Ingest (first phase of v2.0)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-03 — Milestone v2.0 started
+Phase: 6 of 11 (PDF Ingest)
+Plan: 0 of ? in current phase
+Status: Ready to plan
+Last activity: 2026-03-03 — Roadmap v2.0 created (phases 6-11, 25 requirements mapped)
+
+Progress: [░░░░░░░░░░] 0% (v2.0 — 0/6 phases complete)
+
+## Performance Metrics
+
+**Velocity:**
+- Total plans completed: 0 (v2.0)
+- Average duration: — min
+- Total execution time: — hours
+
+**By Phase:**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| - | - | - | - |
+
+**Recent Trend:** No data yet.
+
+*Updated after each plan completion*
 
 ## Accumulated Context
 
-### From M1 (v1.0)
+### Decisions from M1 (carry forward)
 
-- Embedding dim 768 è fisso: cambiarla richiede `docker compose down -v` + reinit DB completo
+- Embedding dim 768 fisso: cambiarla richiede `docker compose down -v` + reinit DB completo
 - psycopg2 SYNC obbligatorio — no asyncpg, no async def nelle route
 - vector_to_str() sempre per liste Python → stringa pgvector senza spazi
 - RealDictCursor: accedere con row["colonna"], mai row[0]
-- Encoding: read_text_file() usa utf-8-sig — NON modificare
-- Worker è profile:manual; il watcher sarà restart:unless-stopped
-- Test: pytest SINCRONO, TestClient, mock DB con patch("api.app.db.get_db_cursor"), EMBEDDING_PROVIDER=dummy
+- watchdog.PollingObserver per watcher (inotify non funziona su Docker+Windows)
 - DB image: pgvector/pgvector:pg16 — NON aggiornare a pg17
 
-### Pending todos from M1
+### M2 Key Dependencies
+
+- Phase 6 (PDF): richiede migration columns page_start/page_end/section_title su chunks
+- Phase 9 (Watcher): richiede migration columns is_deleted/deleted_at/ingest_status su documents
+- Phase 10 (Hybrid): richiede tsvector index su chunks.testo
+- Phase 11 (Auth): da implementare per ultima — wrappa tutti gli endpoint esistenti
+
+### Pending Todos
 
 - docs_source/ non ancora sincronizzate con stato reale (modifiche staged in git)
 - ARCHITECTURE.md, BRD.md, DATA_MODEL.md, PRD.md, SRS.md hanno modifiche non committate
+
+### Blockers/Concerns
+
+None yet.
+
+## Session Continuity
+
+Last session: 2026-03-03
+Stopped at: Roadmap v2.0 created — 25 requirements mapped to phases 6-11
+Resume file: None

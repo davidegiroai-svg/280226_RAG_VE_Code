@@ -1,7 +1,7 @@
 # Requirements: RAG Multi-KB — Comune di Venezia
 
 **Defined:** 2026-03-03
-**Core Value:** Recupero accurato dei chunk più rilevanti dai documenti della KB, con embedding locale (Ollama) e zero dipendenze cloud.
+**Core Value:** Recupero accurato dei chunk piu rilevanti dai documenti della KB, con embedding locale (Ollama) e zero dipendenze cloud.
 
 ## v2 Requirements
 
@@ -73,7 +73,7 @@ Deferred to future release. Tracked but not in current roadmap.
 |---------|--------|
 | Cloud embedding providers (OpenAI, Cohere) | Dati PA — no cloud senza consenso esplicito GDPR |
 | Mobile app | Web-first per PoC, risorse insufficienti |
-| Real-time chat | Alta complessità, non nel core value RAG |
+| Real-time chat | Alta complessita, non nel core value RAG |
 | Multi-tenant isolation avanzata | Namespace KB sufficiente per questo progetto |
 | Modifica vector(768) | Richiede reset DB completo — nessun beneficio attuale |
 
@@ -83,37 +83,37 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PDF-01 | — | Pending |
-| PDF-02 | — | Pending |
-| PDF-03 | — | Pending |
-| PDF-04 | — | Pending |
-| UPLD-01 | — | Pending |
-| UPLD-02 | — | Pending |
-| UPLD-03 | — | Pending |
-| UPLD-04 | — | Pending |
-| UPLD-05 | — | Pending |
-| LLM-01 | — | Pending |
-| LLM-02 | — | Pending |
-| LLM-03 | — | Pending |
-| WTCH-01 | — | Pending |
-| WTCH-02 | — | Pending |
-| WTCH-03 | — | Pending |
-| WTCH-04 | — | Pending |
-| HYBR-01 | — | Pending |
-| HYBR-02 | — | Pending |
-| HYBR-03 | — | Pending |
-| AUTH-01 | — | Pending |
-| AUTH-02 | — | Pending |
-| AUTH-03 | — | Pending |
-| AUTH-04 | — | Pending |
-| API-01 | — | Pending |
-| API-02 | — | Pending |
+| PDF-01 | Phase 6 | Pending |
+| PDF-02 | Phase 6 | Pending |
+| PDF-03 | Phase 6 | Pending |
+| PDF-04 | Phase 6 | Pending |
+| UPLD-01 | Phase 7 | Pending |
+| UPLD-02 | Phase 7 | Pending |
+| UPLD-03 | Phase 7 | Pending |
+| UPLD-04 | Phase 7 | Pending |
+| UPLD-05 | Phase 7 | Pending |
+| LLM-01 | Phase 8 | Pending |
+| LLM-02 | Phase 8 | Pending |
+| LLM-03 | Phase 8 | Pending |
+| WTCH-01 | Phase 9 | Pending |
+| WTCH-02 | Phase 9 | Pending |
+| WTCH-03 | Phase 9 | Pending |
+| WTCH-04 | Phase 9 | Pending |
+| HYBR-01 | Phase 10 | Pending |
+| HYBR-02 | Phase 10 | Pending |
+| HYBR-03 | Phase 10 | Pending |
+| AUTH-01 | Phase 11 | Pending |
+| AUTH-02 | Phase 11 | Pending |
+| AUTH-03 | Phase 11 | Pending |
+| AUTH-04 | Phase 11 | Pending |
+| API-01 | Phase 7 | Pending |
+| API-02 | Phase 7 | Pending |
 
 **Coverage:**
 - v2 requirements: 25 total
-- Mapped to phases: 0
-- Unmapped: 25 ⚠️ (roadmap not yet created)
+- Mapped to phases: 25
+- Unmapped: 0 (100% coverage)
 
 ---
 *Requirements defined: 2026-03-03*
-*Last updated: 2026-03-03 after initial M2 definition*
+*Last updated: 2026-03-03 — traceability populated after roadmap v2.0 creation*
