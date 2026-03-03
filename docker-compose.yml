@@ -32,8 +32,11 @@ services:
       EMBEDDING_DIM: "${EMBEDDING_DIM:-768}"
       OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://host.docker.internal:11434}"
       EMBEDDING_TIMEOUT_S: "${EMBEDDING_TIMEOUT_S:-30}"
+      INBOX_ROOT: "${INBOX_ROOT:-/data/inbox}"
+      MAX_UPLOAD_SIZE_MB: "${MAX_UPLOAD_SIZE_MB:-50}"
     volumes:
       - ./tests:/app/tests:ro
+      - ./data:/data:rw
     depends_on:
       db:
         condition: service_healthy
