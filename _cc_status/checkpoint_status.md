@@ -280,6 +280,35 @@ docker compose exec db psql -U rag -d rag -c "SELECT COUNT(*) FROM chunks WHERE 
 ```
 ---
 
+## Phase 9 — Watcher Completion
+**Status:** DONE
+**Timestamp:** 2026-03-04T10:30:00
+**Milestone v2.0 Progress:** 4 of 6 phases completed (66%)
+**Requirements Completed:** WTCH-01, WTCH-02, WTCH-03, WTCH-04
+**Changes:**
+- `scripts/migration_m2_watcher.sql`: ADD COLUMN IF NOT EXISTS is_deleted/deleted_at/ingest_status + indici
+- `scripts/db_init.sql`: aggiornato con nuove colonne per fresh installs
+- `api/requirements.txt`: aggiunto watchdog>=4.0.0
+- `api/app/ingest_fs.py`: nuove funzioni `update_ingest_status()` e `ingest_single_file()`
+- `api/app/watcher.py`: KBWatcher + InboxHandler + soft_delete_document() con PollingObserver
+- `api/app/main.py`: nuovo endpoint GET /api/v1/documents con filtri kb/status/deleted
+- `docker-compose.yml`: service watcher (profiles: watcher, restart: unless-stopped)
+- `tests/test_watcher.py`: 21 test TDD (tutti PASSED) — 55 totali
+
+**Verification:**
+```bash
+docker compose exec api pytest tests/ -v
+# 55 passed in 5.61s
+```
+
+**Avvio watcher manuale:**
+```powershell
+docker compose --profile watcher up -d watcher
+docker compose logs -f watcher
+```
+
+---
+
 ## Phase 8 — LLM Synthesis Completion
 **Status:** DONE
 **Timestamp:** 2026-03-04T09:30:00

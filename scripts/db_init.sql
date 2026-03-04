@@ -21,6 +21,9 @@ CREATE TABLE documents (
     source_uri text,
     titolo text,
     content_hash text,
+    is_deleted boolean DEFAULT false,
+    deleted_at timestamptz,
+    ingest_status text DEFAULT 'indexed',
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
     UNIQUE(kb_id, content_hash)
@@ -45,6 +48,10 @@ CREATE TABLE chunks (
     section_title text,
     ingest_date timestamptz DEFAULT now()
 );
+
+-- Indici per documents
+CREATE INDEX idx_documents_kb_status ON documents(kb_id, ingest_status);
+CREATE INDEX idx_documents_kb_deleted ON documents(kb_id, is_deleted);
 
 -- Indici per chunks
 CREATE INDEX idx_chunks_kb_id ON chunks(kb_id);

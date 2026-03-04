@@ -65,5 +65,30 @@ services:
     profiles:
       - manual
 
+  watcher:
+    build: ./api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: "db"
+      DB_PORT: "5432"
+      POSTGRES_USER: "${POSTGRES_USER:-rag}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-rag_password_change_me}"
+      POSTGRES_DB: "${POSTGRES_DB:-rag}"
+      EMBEDDING_PROVIDER: "${EMBEDDING_PROVIDER:-ollama}"
+      EMBEDDING_MODEL: "${EMBEDDING_MODEL:-nomic-embed-text}"
+      EMBEDDING_DIM: "${EMBEDDING_DIM:-768}"
+      OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://host.docker.internal:11434}"
+      EMBEDDING_TIMEOUT_S: "${EMBEDDING_TIMEOUT_S:-30}"
+      INBOX_ROOT: "${INBOX_ROOT:-/data/inbox}"
+      WATCHER_POLL_SECONDS: "${WATCHER_POLL_SECONDS:-30}"
+    volumes:
+      - ./data:/data:rw
+    entrypoint: ["python", "-m", "app.watcher"]
+    profiles:
+      - watcher
+    restart: unless-stopped
+
 volumes:
   pgdata:

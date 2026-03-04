@@ -210,6 +210,87 @@ def insert_chunks(
     return inserted
 
 
+def update_ingest_status(cur, doc_id: str, status: str) -> None:
+    """Aggiorna lo stato di ingest di un documento.
+
+    Args:
+        cur:    cursore psycopg2 aperto.
+        doc_id: UUID del documento.
+        status: nuovo stato ('pending', 'processing', 'done', 'error').
+    """
+    cur.execute(
+        "UPDATE documents SET ingest_status=%s, updated_at=now() WHERE id=%s",
+        (status, doc_id),
+    )
+
+
+def ingest_single_file(file_path: Path, kb_namespace: str) -> dict:
+    """Ingestisce un singolo file nel DB. Usato dal watcher per auto-ingest.
+
+    Ciclo di vita dello stato: pending (inserimento) → processing → done/error.
+
+    Args:
+        file_path:    Path assoluta al file da ingestire.
+        kb_namespace: Namespace della KB di destinazione.
+
+    Returns:
+        dict con chiavi: status, doc_id, is_new, chunks_inserted.
+
+    Raises:
+        RuntimeError: se l'ingest fallisce.
+    """
+    ext = file_path.suffix.lower()
+    supported = {".txt", ".md", ".csv", ".json", ".pdf"}
+    if ext not in supported:
+        return {"status": "skipped", "reason": "estensione non supportata"}
+
+    conn = get_conn()
+    conn.autocommit = False
+
+    try:
+        with conn.cursor() as cur:
+            kb_id = ensure_kb(cur, kb_namespace)
+
+            is_pdf = ext == ".pdf"
+            if is_pdf:
+                raw_bytes = file_path.read_bytes()
+                content_hash = hashlib.sha256(raw_bytes).hexdigest()
+                text = ""
+            else:
+                text = read_text_file(file_path)
+                if not text.strip():
+                    conn.rollback()
+                    return {"status": "skipped", "reason": "file vuoto"}
+                content_hash = sha256_text(text)
+
+            source_path = file_path.as_posix()
+            doc_id, is_new = upsert_document(cur, kb_id, source_path, file_path.name, content_hash)
+
+            if not is_new:
+                conn.rollback()
+                return {"doc_id": doc_id, "is_new": False, "chunks_inserted": 0, "status": "existing"}
+
+            # Transizione stato: processing
+            update_ingest_status(cur, doc_id, "processing")
+
+            chunks_inserted = insert_chunks(
+                cur, kb_id, kb_namespace, doc_id, source_path, file_path.name, text,
+                file_path=file_path,
+            )
+
+            # Transizione stato: done
+            update_ingest_status(cur, doc_id, "done")
+
+        conn.commit()
+        return {"doc_id": doc_id, "is_new": True, "chunks_inserted": chunks_inserted, "status": "done"}
+
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 def read_pdf_chunks(p: Path) -> list:
     """Legge un PDF con pymupdf4llm e restituisce chunk per pagina.
 

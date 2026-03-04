@@ -66,6 +66,20 @@ class UploadResponse(BaseModel):
     files: List[str]
 
 
+class DocumentInfo(BaseModel):
+    id: str
+    kb_namespace: str
+    source_path: Optional[str] = None
+    titolo: Optional[str] = None
+    ingest_status: Optional[str] = None
+    is_deleted: bool = False
+    created_at: Optional[str] = None
+
+
+class DocumentsResponse(BaseModel):
+    documents: List[DocumentInfo]
+
+
 @app.get("/health")
 def health_check():
     """Health check endpoint with DB connection test."""
@@ -191,6 +205,68 @@ def list_kbs():
         raise HTTPException(
             status_code=500,
             detail=f"Errore interno durante il recupero delle KB: {str(e)}"
+        )
+
+
+@app.get("/api/v1/documents")
+def list_documents(
+    kb: Optional[str] = Query(None, description="Filtra per namespace KB"),
+    status: Optional[str] = Query(None, description="Filtra per ingest_status (es. done, error)"),
+    deleted: Optional[bool] = Query(None, description="Filtra per is_deleted (true/false)"),
+):
+    """Elenca i documenti indicizzati con stato ingest e soft-delete flag."""
+    try:
+        sql = """
+            SELECT
+                d.id::text,
+                kb.namespace AS kb_namespace,
+                d.source_uri AS source_path,
+                d.titolo,
+                d.ingest_status,
+                COALESCE(d.is_deleted, FALSE) AS is_deleted,
+                d.created_at::text
+            FROM documents d
+            JOIN knowledge_base kb ON kb.id = d.kb_id
+            WHERE 1=1
+        """
+        params = []
+
+        if kb:
+            sql += " AND kb.namespace = %s"
+            params.append(kb)
+        if status is not None:
+            sql += " AND d.ingest_status = %s"
+            params.append(status)
+        if deleted is not None:
+            sql += " AND COALESCE(d.is_deleted, FALSE) = %s"
+            params.append(deleted)
+
+        sql += " ORDER BY d.created_at DESC"
+
+        with get_db_cursor() as cursor:
+            cursor.execute(sql, params)
+            rows = cursor.fetchall()
+
+        docs = [
+            DocumentInfo(
+                id=row["id"],
+                kb_namespace=row["kb_namespace"],
+                source_path=row.get("source_path"),
+                titolo=row.get("titolo"),
+                ingest_status=row.get("ingest_status"),
+                is_deleted=bool(row.get("is_deleted", False)),
+                created_at=row.get("created_at"),
+            )
+            for row in rows
+        ]
+        return DocumentsResponse(documents=docs)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Errore interno durante il recupero dei documenti: {str(e)}"
         )
 
 
