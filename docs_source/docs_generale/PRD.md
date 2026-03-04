@@ -18,6 +18,15 @@ Caratteristiche principali
 - Orchestrazione query e prompt con grounding delle fonti e citazioni.
 - Interfaccia amministrativa per upload, mappatura cartelle e revisione log di ingest.
 - Monitoraggio, logging e report di costo/uso.
+- Frontend web minimale per query (KB/namespace, top_k, fonti) e gestione documenti (upload/stato).
+- Upload documenti via UI/API con salvataggio in inbox per KB.
+- Indicizzazione automatica (watcher/polling) e delete propagation (coerenza sorgente↔KB).
+- Answer synthesis (RAG completa) e output modes (summary/table/checklist/extract-json).
+- Citazioni pagina-livello per PDF (titolo/pagina/sezione).
+- Observability (metriche/log/tracing) ed Evaluation harness (Precision@K, MRR, regressioni).
+- Retrieval upgrades (rewrite, hybrid search, reranker, caching).
+- Enterprise connectors (SharePoint/S3/Drive/SAP/Salesforce) con sync incrementale e ACL.
+- Security & Compliance (auth, RBAC/ACL, audit log, TLS, retention).
 
 Metriche di successo
 - MRR (Mean Reciprocal Rank) sulle porzioni recuperate ≥ baseline target (da definire).
@@ -87,3 +96,114 @@ Data: 2026-02-26
 - Documentazione A-D aggiornata, `docker-compose` spec, ingest worker POC, backend API minimale, Admin UI POC, test dataset e checklist di quality-check.
 
 Fine Appendice.
+
+
+---
+
+## Appendix B – Roadmap funzionale estesa (feature epics)
+
+Questa appendice formalizza le estensioni emerse e le colloca in una roadmap coerente. Le milestone sono indicative e possono essere riallineate in base a vincoli di budget e priorità del pilota.
+
+### B.1 Feature: Frontend v1 (Web UI minimale)
+**Descrizione**
+- Web app minimale con:
+  - selezione KB/namespace
+  - box query + `top_k` + (roadmap) modalità output
+  - risultati con fonti (expand/collapse)
+  - pagina “Documenti” con upload e stato indicizzazione (opzionale)
+
+**User stories**
+- Come *utente*, voglio selezionare una KB e fare una query senza usare CLI.
+- Come *utente*, voglio vedere le fonti e aprirle/espanderle per verificare.
+- Come *admin*, voglio caricare documenti e vedere lo stato ingest/indicizzazione.
+
+**Criteri di completamento (MVP UI)**
+- UI funzionante su localhost; supporto a almeno 1 KB; query con `top_k`.
+- Lista fonti con metadati minimi e toggle expand/collapse.
+- Gestione errori (KB non selezionata, query vuota, timeout).
+
+### B.2 Feature: Upload docs (UI/API)
+**Descrizione**
+- Endpoint upload (es. `POST /api/v1/upload?kb=...`) che salva file in una inbox per KB (es. `/data/inbox/<kb>/`) e avvia il flusso di ingest.
+
+**User stories**
+- Come *admin*, voglio caricare un PDF/DOCX via UI o curl.
+- Come *admin*, voglio ricevere conferma (id file/job) e vedere lo stato.
+
+### B.3 Feature: Auto-index + delete propagation (watcher)
+**Descrizione**
+- Servizio “watcher” che:
+  - indicizza automaticamente file nuovi/modificati nell’inbox della KB
+  - rimuove dal DB documenti/chunk quando i file vengono cancellati
+  - è robusto su Windows/Docker: preferibile polling rispetto a soli eventi filesystem
+
+**Note di prodotto**
+- Principio “zero frizione”: non richiede un bottone “re-index”.
+- Gestisce consistenza e conflitti (file sostituito, rename, duplicati).
+
+### B.4 Feature: Answer synthesis (RAG completa)
+**Descrizione**
+- Aggiungere un livello di generazione che sintetizza i top chunk in una risposta breve, strutturata e non ridondante, con citazioni e fallback.
+
+**Roadmap**
+- M2: endpoint dedicato (`/api/v1/answer`) o flag su query (`synthesize=true`).
+- M3: miglioramenti grounding (policy anti-hallucination, guardrails).
+
+### B.5 Feature: Output modes (summary/table/checklist/extract)
+**Descrizione**
+- Stesso retrieval, output variabile in base a richiesta o parametro `mode`:
+  - `summary`, `bullets`, `table`, `checklist`, `qa`, `extract-json`
+- Consiglio: per `table` / `extract-json` l’LLM produce JSON strutturato validato da schema, la UI renderizza.
+
+### B.6 Feature: Page-level citations (citazioni “serie”)
+**Descrizione**
+- Ingest PDF pagina-per-pagina o con mapping pagina→offset per supportare citazioni con:
+  - titolo documento
+  - pagina/e (start/end)
+  - sezione (quando disponibile)
+
+### B.7 Epic: Connectors enterprise
+**Scope**
+- Connettori (SharePoint, S3, Drive, SAP, Salesforce) con:
+  - ingest/sync incrementale
+  - gestione credenziali
+  - mapping ACL
+
+### B.8 Epic: Security & Compliance
+**Scope**
+- Autenticazione (token/session)
+- RBAC/ACL per KB e documenti
+- Audit log query/azioni
+- TLS e encryption at rest (se richiesto)
+- Retention log e policy GDPR
+
+### B.9 Epic: Quality (Evaluation harness)
+**Scope**
+- Dataset query reali
+- Metriche retrieval: Precision@K, MRR
+- Regressioni automatiche (prima/dopo)
+- Dopo answer synthesis: metriche grounding/faithfulness (es. punteggio di citazione/coverage)
+
+### B.10 Epic: Retrieval quality upgrades
+**Scope**
+- Query rewriting / intent detection
+- Hybrid search (BM25 + vector)
+- Reranker (cross-encoder)
+- Caching (embedding cache / result cache)
+
+### B.11 Epic: Observability
+**Scope**
+- Metriche: latency ingest/query, error rate
+- Log strutturati con `request_id`
+- Dashboard (minima) + alert
+- Health checks operativi
+
+### B.12 Epic (opzionale): Multi-modal / Multi-agent
+**Scope**
+- Ingest tabelle/immagini (OCR/vision)
+- Agenti specializzati + orchestratore (routing e tool calling)
+- Policy e logging per routing
+
+---
+
+Data aggiornamento: 2026-03-03

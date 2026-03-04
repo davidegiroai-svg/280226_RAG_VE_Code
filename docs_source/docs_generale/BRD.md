@@ -21,7 +21,10 @@ Requisiti di business principali
 - BR‑1: Il sistema deve indicizzare e cercare documenti da almeno tre tipi di sorgente (filesystem, cloud drive, pagine web) al lancio.  
   * Per il pilot di Venezia la copertura minima è filesystem locali e OneDrive/SharePoint; gli altri tipi sono previsti nel prodotto generico successivo.
 - BR‑2: Il sistema deve fornire report di utilizzo e stime di costo per query quando si usano modelli cloud.
-- BR‑3: Il sistema deve esporre una UI amministrativa per gestione KB e monitoraggio degli ingest.
+- BR‑3: Il sistema deve esporre una UI web (admin + query) per selezione KB/namespace, ricerca, visualizzazione fonti e monitoraggio ingest (incluso upload documenti dove previsto).
+- BR‑4: Il sistema deve supportare caricamento documenti via UI/API per ridurre attrito operativo e velocizzare l’onboarding.
+- BR‑5: Il sistema deve supportare indicizzazione automatica e propagazione delle cancellazioni (delete sync) per garantire coerenza tra sorgente e KB.
+- BR‑6: Il sistema deve supportare auditabilità e compliance (citazioni, RBAC/ACL, audit log, retention) per contesti PA/enterprise.
 
 Criteri di successo
 - Completare il primo pilota con il cliente target entro X settimane e ottenere soddisfazione utente ≥ target.
@@ -98,3 +101,61 @@ Richieste operative aggiuntive (security/hand‑off)
 - Approvare team operativo e assetto per rotazione chiavi e pulizia storia Git.
 
 Fine BRD.
+
+
+---
+
+## Appendix B – Estensioni emerse (UI, ingest, qualità, security)
+
+Questa appendice integra i requisiti business con le estensioni emerse durante l’allineamento tecnico-funzionale. Le voci sono organizzate per macro‑tema e possono essere incrementali (MVP → roadmap).
+
+### B.1 User journey: Frontend Web (UI semplice e intuitiva)
+**Scenario tipico (utente non tecnico / funzionario):**
+1. Seleziona la Knowledge Base (KB) o un namespace dal menu.
+2. Inserisce la domanda nel box query, imposta `top_k` e (in roadmap) la modalità di output.
+3. Ottiene risultati con risposta/sintesi e **fonti** consultabili (expand/collapse).
+4. (Opzionale) Apre la pagina “Documenti” per caricare file e verificare lo stato di indicizzazione.
+
+**Benefici business attesi:**
+- Adozione più rapida (riduzione barriera d’ingresso rispetto a CLI).
+- Riduzione tempo di ricerca e di “caccia al PDF giusto”.
+- Migliore tracciabilità: l’utente vede e riapre le fonti.
+
+### B.2 Obiettivo operativo “zero frizione”: upload + indicizzazione automatica
+Per ridurre manualità e rischi operativi, l’esperienza desiderata è:
+- Caricamento documenti via UI/API (senza uso di Esplora Risorse come prerequisito).
+- Indicizzazione automatica (watcher) su cartelle di inbox per KB.
+- Propagazione delete: se un file viene rimosso dalla sorgente, il sistema rimuove (o marca come eliminati) documenti/chunk nel DB, senza bottone dedicato.
+
+**Benefici business attesi:**
+- Continuità operativa: meno passaggi manuali, meno errori.
+- Coerenza tra repository sorgente e KB indicizzata.
+- Maggior frequenza di aggiornamento del corpus (più “freshness” → più fiducia).
+
+### B.3 Risposta “pronta” e output differenziati (RAG completa)
+Oltre al retrieval di estratti, il valore percepito aumenta con:
+- **Answer generation**: sintesi sopra i top chunk recuperati.
+- **Output dinamico**: summary / bullets / table / checklist / extract-json, selezionabile da UI o parametro.
+
+**Rischi & mitigazioni (business):**
+- Rischio hallucination → mitigare con grounding, citazioni e fallback a “solo estratti”.
+- Requisito di trasparenza → citazioni “serie” (titolo, pagina, sezione) dove possibile.
+
+### B.4 Auditabilità, security & compliance (Enterprise RAG)
+Per contesti PA/enterprise sono necessari:
+- Autenticazione e controllo accessi (RBAC/ACL) su KB e documenti.
+- Audit log (chi ha chiesto cosa e quando) con retention.
+- Cifratura in transito (TLS) e, se richiesto, at‑rest.
+- Policy di trattamento dei log (query text come dato potenzialmente personale).
+
+### B.5 Evoluzioni enterprise: connettori, qualità retrieval, osservabilità
+Roadmap tipica:
+- Connettori (SharePoint / S3 / Drive / SAP / Salesforce) con sync incrementale e gestione credenziali/ACL.
+- Retrieval upgrades: rewrite/intent, hybrid search, reranker, caching.
+- Evaluation harness: dataset query reali, metriche (Precision@K, MRR), regressioni automatiche.
+- Osservabilità: metriche ingest/query, tracing con `request_id`, dashboard e alert.
+- (Opzionale) Multimodale e multi‑agent: ingest tabelle/immagini (OCR/vision) e agenti specializzati.
+
+---
+
+Data aggiornamento: 2026-03-03

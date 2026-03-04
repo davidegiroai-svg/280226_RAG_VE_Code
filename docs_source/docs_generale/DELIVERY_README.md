@@ -34,3 +34,77 @@ Optional: Purge Git history
 
 Contact
 - For questions about the PoC, contact the engineering lead listed in `docs/04_handoff_notes.md`.
+
+
+---
+
+## Extended runbook (UI, upload, watcher, RAG modes, citations)
+
+### Optional: Run Frontend Web UI
+- Start the backend services first (API + DB + worker).
+- Then run the UI dev server (implementation-dependent). Expected UI capabilities:
+  - KB/namespace selector
+  - query input + top_k + mode (roadmap)
+  - sources list with expand/collapse
+  - Documents page with upload + indexing status (optional)
+
+### Upload documents via API
+Example (curl):
+- `curl -F "file=@./sample.pdf" "http://localhost:8000/api/v1/upload?kb=<kb_namespace>"`
+
+Example (PowerShell):
+- `Invoke-RestMethod -Method Post -Uri "http://localhost:8000/api/v1/upload?kb=<kb_namespace>" -Form @{ file = Get-Item ".\sample.pdf" }`
+
+Notes:
+- The server must enforce max file size and allowed types (PDF/DOCX/TXT in MVP).
+- Upload stores files into a per-KB inbox (PoC convention: `/data/inbox/<kb>/` volume).
+
+### Run Watcher (auto-index + delete propagation)
+- Start the watcher service (container or local process) with configurable polling:
+  - `WATCHER_POLL_SECONDS` (e.g., 30)
+  - `INBOX_ROOT` (e.g., `/data/inbox`)
+- Watcher responsibilities:
+  - detect new/updated files → enqueue ingest
+  - detect deleted files → mark docs deleted + cleanup chunks
+
+Troubleshooting:
+- If running on Windows/Docker Desktop, prefer polling over filesystem events.
+- Ensure the inbox volume is mounted read/write for the watcher and API.
+
+### Query endpoints (retrieval vs full RAG)
+Retrieval-only:
+- `POST /api/v1/query` with `{ "kb":"<kb>", "query":"...", "top_k": 5 }`
+
+Full RAG (answer synthesis):
+- Option A: `POST /api/v1/answer`
+- Option B: `POST /api/v1/query` with `synthesize=true`
+
+### Output modes
+- Use a `mode` parameter to request:
+  - `summary`, `bullets`, `table`, `checklist`, `qa`, `extract-json`
+- For `table` / `extract-json`, the API should return JSON validated by schema; UI renders the table.
+
+### Page-level citations (PDF)
+- Enable PDF page-aware ingestion to return citations with:
+  - document title
+  - page_start / page_end
+  - section_title (if available)
+
+### Security & TLS (production guidance)
+- PoC may run without TLS on localhost.
+- Production deployments MUST enable TLS, protect admin endpoints, and configure RBAC/ACL.
+- Store secrets outside source control; prefer a secret manager when available.
+
+### Observability
+- Ensure `/health` and `/metrics` are reachable.
+- Logs should include a `request_id` to correlate API, watcher and worker events.
+
+### Evaluation harness (offline)
+- Run evaluation scripts against a curated query dataset to compute:
+  - Precision@K, MRR
+  - (after answer synthesis) grounding/faithfulness metrics
+- Store reports as versioned artifacts for regression tracking.
+
+---
+
+Updated: 2026-03-03
