@@ -217,3 +217,107 @@ class TestQueryApiConSynthesis:
         assert data["sources"] == []
         # LLM non deve essere chiamato se non ci sono chunk
         assert not mock_post.called
+
+
+# ─────────────────────────────────────────────────────────
+# Test history conversazionale (Phase conversational)
+# ─────────────────────────────────────────────────────────
+
+class TestSynthesizeAnswerConHistory:
+
+    def test_history_inclusa_nel_payload(self, monkeypatch):
+        """I messaggi di history devono apparire nel payload inviato a Ollama."""
+        monkeypatch.setenv("OLLAMA_BASE_URL", "http://fake-ollama:11434")
+        chunks = [{"excerpt": "Testo.", "source_path": None, "kb_namespace": "demo"}]
+        history = [
+            {"role": "user", "content": "Prima domanda"},
+            {"role": "assistant", "content": "Prima risposta"},
+        ]
+
+        with patch("app.llm.requests.post") as mock_post:
+            mock_post.return_value = _ollama_response("ok")
+            synthesize_answer("Seconda domanda", chunks, "llama3.2", history=history)
+
+        payload = mock_post.call_args.kwargs["json"]
+        ruoli = [m["role"] for m in payload["messages"]]
+        contenuti = [m["content"] for m in payload["messages"]]
+        assert "Prima domanda" in contenuti
+        assert "Prima risposta" in contenuti
+        # Ordine: system → history... → user(context+domanda)
+        assert ruoli[0] == "system"
+        assert ruoli[-1] == "user"
+
+    def test_history_vuota_funziona(self, monkeypatch):
+        """history=[] non causa errori e funziona come prima."""
+        monkeypatch.setenv("OLLAMA_BASE_URL", "http://fake-ollama:11434")
+        chunks = [{"excerpt": "Testo.", "source_path": None, "kb_namespace": "demo"}]
+
+        with patch("app.llm.requests.post") as mock_post:
+            mock_post.return_value = _ollama_response("risposta ok")
+            risultato = synthesize_answer("domanda", chunks, "llama3.2", history=[])
+
+        assert risultato == "risposta ok"
+
+    def test_history_none_funziona(self, monkeypatch):
+        """history=None (default) non causa errori — compatibilità retroattiva."""
+        monkeypatch.setenv("OLLAMA_BASE_URL", "http://fake-ollama:11434")
+        chunks = [{"excerpt": "Testo.", "source_path": None, "kb_namespace": "demo"}]
+
+        with patch("app.llm.requests.post") as mock_post:
+            mock_post.return_value = _ollama_response("risposta ok")
+            risultato = synthesize_answer("domanda", chunks, "llama3.2")
+
+        assert risultato == "risposta ok"
+
+
+class TestQueryApiConHistory:
+
+    def test_query_api_accetta_history(self, monkeypatch):
+        """POST /api/v1/query con history restituisce 200."""
+        monkeypatch.setenv("EMBEDDING_PROVIDER", "dummy")
+        monkeypatch.setenv("OLLAMA_BASE_URL", "http://fake-ollama:11434")
+        ctx, _ = _mock_cursor(MOCK_ROWS)
+
+        history_payload = [
+            {"role": "user", "content": "Prima domanda"},
+            {"role": "assistant", "content": "Prima risposta"},
+        ]
+
+        with patch("app.main.get_db_cursor", return_value=ctx):
+            with patch("app.main.embed_text", return_value=([0.0] * 768, "dummy", 768)):
+                with patch("app.llm.requests.post") as mock_post:
+                    mock_post.return_value = _ollama_response("Risposta conversazionale.")
+                    resp = client.post(
+                        "/api/v1/query",
+                        json={
+                            "query": "Seconda domanda",
+                            "top_k": 1,
+                            "synthesize": True,
+                            "history": history_payload,
+                        },
+                    )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["answer"] == "Risposta conversazionale."
+
+    def test_history_passata_a_synthesize(self, monkeypatch):
+        """La history ricevuta dal API deve essere inoltrata a synthesize_answer."""
+        monkeypatch.setenv("EMBEDDING_PROVIDER", "dummy")
+        monkeypatch.setenv("OLLAMA_BASE_URL", "http://fake-ollama:11434")
+        ctx, _ = _mock_cursor(MOCK_ROWS)
+
+        history_payload = [{"role": "user", "content": "MARKER_HISTORY_TEST"}]
+
+        with patch("app.main.get_db_cursor", return_value=ctx):
+            with patch("app.main.embed_text", return_value=([0.0] * 768, "dummy", 768)):
+                with patch("app.llm.requests.post") as mock_post:
+                    mock_post.return_value = _ollama_response("ok")
+                    client.post(
+                        "/api/v1/query",
+                        json={"query": "domanda", "top_k": 1, "synthesize": True, "history": history_payload},
+                    )
+
+        payload = mock_post.call_args.kwargs["json"]
+        testi = " ".join(m["content"] for m in payload["messages"])
+        assert "MARKER_HISTORY_TEST" in testi

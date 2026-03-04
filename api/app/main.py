@@ -22,12 +22,18 @@ app = FastAPI(
 VALID_SEARCH_MODES = {"vector", "fts", "hybrid"}
 
 
+class ChatMessage(BaseModel):
+    role: str = Field(..., description="'user' o 'assistant'")
+    content: str = Field(..., description="Testo del messaggio")
+
+
 class QueryRequest(BaseModel):
     query: str = Field(..., min_length=1, description="Search query text")
     kb: Optional[str] = Field(None, description="Optional KB namespace to filter")
     top_k: Optional[int] = Field(5, ge=1, le=20, description="Number of results to return (1-20)")
     synthesize: bool = Field(False, description="Se True, genera risposta sintetica via LLM")
     search_mode: str = Field("vector", description="Modalità ricerca: vector, fts, hybrid")
+    history: Optional[List[ChatMessage]] = Field(None, description="Storia della conversazione precedente")
 
 class Source(BaseModel):
     id: str
@@ -139,7 +145,11 @@ def query_api(request: QueryRequest, _auth=Depends(require_api_key)):
         answer = None
         if request.synthesize and sources:
             llm_model = os.environ.get("OLLAMA_LLM_MODEL", "llama3.2")
-            answer = synthesize_answer(request.query, sources, llm_model)
+            history_dicts = (
+                [{"role": m.role, "content": m.content} for m in request.history]
+                if request.history else None
+            )
+            answer = synthesize_answer(request.query, sources, llm_model, history=history_dicts)
 
         # Fallback se LLM non disponibile o synthesize=False
         if answer is None:
@@ -187,7 +197,7 @@ def list_kbs(_auth=Depends(require_api_key)):
                 kb.namespace,
                 kb.nome,
                 COUNT(DISTINCT d.id) AS doc_count,
-                COUNT(c.id) AS chunk_count
+                COUNT(DISTINCT c.id) AS chunk_count
             FROM knowledge_base kb
             LEFT JOIN documents d ON d.kb_id = kb.id
             LEFT JOIN chunks c ON c.kb_id = kb.id
