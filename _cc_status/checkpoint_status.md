@@ -264,4 +264,61 @@ docker compose --profile manual run --rm worker --kb demo --path /data/inbox/dem
 docker compose exec db psql -U rag -d rag -c "SELECT COUNT(*) FROM chunks WHERE kb_namespace='demo' AND embedding IS NOT NULL;"
 # Query API con KB
 # Query API senza KB (kb=null)
+
+---
+
+## Phase 6 — PDF Ingest Completion
+**Status:** DONE
+**Timestamp:** 2026-03-03T22:55:00
+**Milestone v2.0 Progress:** 1 of 6 phases completed
+**Changes:**
+- `api/app/ingest_fs.py`: aggiunta `read_pdf_chunks`
+- `scripts/db_init.sql`: aggiunte colonne `page_start`, `page_end`
+- `tests/test_ingest_pdf.py`: 8 test unitari completati
+- `api/requirements.txt`: aggiunta `pymupdf4llm`
+
 ```
+---
+
+## Phase 8 — LLM Synthesis Completion
+**Status:** DONE
+**Timestamp:** 2026-03-04T09:30:00
+**Milestone v2.0 Progress:** 3 of 6 phases completed (50%)
+**Requirements Completed:** LLM-01, LLM-02, LLM-03
+**Changes:**
+- `api/app/llm.py`: nuova funzione `synthesize_answer(query, chunks, model)` via Ollama /api/chat
+- `api/app/main.py`: parametro `synthesize: bool = False` in QueryRequest; chiama `synthesize_answer()` se True
+- `docker-compose.yml`: env vars `OLLAMA_LLM_MODEL`, `LLM_TIMEOUT_S` aggiunte al service api
+- `.env.example`: aggiunte `OLLAMA_LLM_MODEL=llama3.2`, `LLM_TIMEOUT_S=30`
+- `tests/test_llm_synthesis.py`: 10 test TDD (5 unitari + 5 integrazione API), tutti PASSED
+
+**Verification:**
+```bash
+docker compose exec api pytest tests/ -v
+# 34 passed in 2.78s
+```
+
+**Esempio uso:**
+```powershell
+$body = '{"query": "bandi", "top_k": 3, "synthesize": true}'
+Invoke-RestMethod -Uri 'http://localhost:8000/api/v1/query' -Method POST -ContentType 'application/json' -Body $body
+# Se Ollama disponibile con llama3.2: answer sintetica in italiano
+# Se Ollama non disponibile: answer = "Retrieval-only response." + sources
+```
+
+---
+
+## Phase 7 — Upload API Completion
+**Status:** DONE
+**Timestamp:** 2026-03-03T23:18:00
+**Milestone v2.0 Progress:** 2 of 6 phases completed (33.33%)
+**Requirements Completed:** 
+- Phase 6: PDF-01, PDF-02, PDF-03, PDF-04
+- Phase 7: UPLD-01, UPLD-02, UPLD-03, UPLD-04, UPLD-05, API-01, API-02
+**Requirements Remaining:** 
+- LLM-01, LLM-02, LLM-03 (Phase 8), WTCH-01, WTCH-02, WTCH-03, WTCH-04 (Phase 9), HYBR-01, HYBR-02, HYBR-03 (Phase 10), AUTH-01, AUTH-02, AUTH-03, AUTH-04 (Phase 11)
+**Changes:**
+- `api/app/main.py`: nuovi endpoint `/upload`, `/kbs`, `/health/ready`
+- `api/app/schemas.py`: `UploadResponse`, `KBListResponse`
+- `api/app/storage.py`: business logic per salvataggio file su disco
+- `tests/test_upload_api.py`: 24 test unitari e di integrazione (tutti PASSED)

@@ -9,6 +9,7 @@ from typing import Optional, List
 from .db import test_connection, get_db_cursor
 from .query import build_query_sql, parse_results
 from .embedding import embed_text
+from .llm import synthesize_answer
 
 app = FastAPI(
     title="RAG VE API",
@@ -21,6 +22,7 @@ class QueryRequest(BaseModel):
     query: str = Field(..., min_length=1, description="Search query text")
     kb: Optional[str] = Field(None, description="Optional KB namespace to filter")
     top_k: Optional[int] = Field(5, ge=1, le=20, description="Number of results to return (1-20)")
+    synthesize: bool = Field(False, description="Se True, genera risposta sintetica via LLM")
 
 class Source(BaseModel):
     id: str
@@ -109,10 +111,18 @@ def query_api(request: QueryRequest):
 
         sources = parse_results(rows)
 
-        # Build response
-        answer = "Retrieval-only response. No LLM synthesis yet."
-        if not sources:
-            answer = "No matching documents found."
+        # Sintesi LLM opzionale (synthesize=True)
+        answer = None
+        if request.synthesize and sources:
+            llm_model = os.environ.get("OLLAMA_LLM_MODEL", "llama3.2")
+            answer = synthesize_answer(request.query, sources, llm_model)
+
+        # Fallback se LLM non disponibile o synthesize=False
+        if answer is None:
+            if not sources:
+                answer = "Nessun documento trovato per la query specificata."
+            else:
+                answer = "Retrieval-only response."
 
         return QueryResponse(answer=answer, sources=sources)
 
