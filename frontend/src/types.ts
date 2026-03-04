@@ -1,9 +1,15 @@
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export interface QueryRequest {
   query: string
   kb?: string
   top_k?: number
   synthesize?: boolean
   search_mode?: 'vector' | 'fts' | 'hybrid'
+  history?: ChatMessage[]
 }
 
 export interface Source {
@@ -17,6 +23,13 @@ export interface Source {
 export interface QueryResponse {
   answer: string
   sources: Source[]
+}
+
+// Messaggio nella chat UI (estende ChatMessage con fonti opzionali per l'assistente)
+export interface UIChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+  sources?: Source[]
 }
 
 export interface KbInfo {
