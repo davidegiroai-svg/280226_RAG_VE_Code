@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 
 from .db import test_connection, get_db_cursor
-from .query import build_query_sql, parse_results
+from .query import build_query_sql, parse_results, execute_search
 from .embedding import embed_text
 from .llm import synthesize_answer
 
@@ -18,11 +18,15 @@ app = FastAPI(
 )
 
 # Request/Response models
+VALID_SEARCH_MODES = {"vector", "fts", "hybrid"}
+
+
 class QueryRequest(BaseModel):
     query: str = Field(..., min_length=1, description="Search query text")
     kb: Optional[str] = Field(None, description="Optional KB namespace to filter")
     top_k: Optional[int] = Field(5, ge=1, le=20, description="Number of results to return (1-20)")
     synthesize: bool = Field(False, description="Se True, genera risposta sintetica via LLM")
+    search_mode: str = Field("vector", description="Modalità ricerca: vector, fts, hybrid")
 
 class Source(BaseModel):
     id: str
@@ -108,22 +112,27 @@ def query_api(request: QueryRequest):
     - sources: list of matching chunks with metadata
     """
     try:
-        # Calculate embedding for the query
-        query_vec, model_name, dim = embed_text(request.query)
+        # Valida search_mode
+        if request.search_mode not in VALID_SEARCH_MODES:
+            raise HTTPException(
+                status_code=422,
+                detail=f"search_mode non valido. Valori accettati: {', '.join(sorted(VALID_SEARCH_MODES))}"
+            )
 
-        # Build and execute query
-        sql, params = build_query_sql(
-            query_text=request.query,
-            kb_namespace=request.kb,
-            top_k=request.top_k,
-            query_vec=query_vec
-        )
+        # Calcola embedding (non serve per search_mode="fts")
+        query_vec = None
+        if request.search_mode != "fts":
+            query_vec, _model_name, _dim = embed_text(request.query)
 
         with get_db_cursor() as cursor:
-            cursor.execute(sql, params)
-            rows = cursor.fetchall()
-
-        sources = parse_results(rows)
+            sources = execute_search(
+                query_text=request.query,
+                cursor=cursor,
+                kb_namespace=request.kb,
+                top_k=request.top_k,
+                search_mode=request.search_mode,
+                query_vec=query_vec,
+            )
 
         # Sintesi LLM opzionale (synthesize=True)
         answer = None

@@ -309,6 +309,37 @@ docker compose logs -f watcher
 
 ---
 
+## Phase 10 — Hybrid Search Completion
+**Status:** DONE
+**Timestamp:** 2026-03-04T12:00:00
+**Milestone v2.0 Progress:** 5 of 6 phases completed (83%)
+**Requirements Completed:** HYBR-01, HYBR-02, HYBR-03
+**Changes:**
+- `scripts/migration_m2_hybrid.sql`: ADD COLUMN testo_tsv TSVECTOR + GIN index + trigger auto-update
+- `api/app/hybrid.py`: nuovo modulo con `fts_search()` + `rrf_merge()` (k=60)
+- `api/app/query.py`: import fts_search/rrf_merge, nuova funzione `execute_search()` con search_mode
+- `api/app/main.py`: campo `search_mode` in QueryRequest (vector/fts/hybrid), usa execute_search()
+- `tests/test_hybrid_search.py`: 23 test TDD (tutti PASSED) — 78 totali
+
+**Verification:**
+```bash
+docker compose exec api pytest tests/ -v
+# 78 passed in 2.27s
+```
+
+**Uso con curl/PowerShell:**
+```powershell
+# Hybrid search
+$body = '{"query": "bando venezia", "search_mode": "hybrid", "top_k": 5}'
+Invoke-RestMethod -Uri 'http://localhost:8000/api/v1/query' -Method POST -ContentType 'application/json' -Body $body
+
+# Full-text search only
+$body = '{"query": "bando venezia", "search_mode": "fts", "top_k": 5}'
+Invoke-RestMethod -Uri 'http://localhost:8000/api/v1/query' -Method POST -ContentType 'application/json' -Body $body
+```
+
+---
+
 ## Phase 8 — LLM Synthesis Completion
 **Status:** DONE
 **Timestamp:** 2026-03-04T09:30:00
