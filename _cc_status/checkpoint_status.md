@@ -469,3 +469,44 @@ Invoke-RestMethod -Uri 'http://localhost:8000/api/v1/query' -Method POST -Conten
 - `api/app/schemas.py`: `UploadResponse`, `KBListResponse`
 - `api/app/storage.py`: business logic per salvataggio file su disco
 - `tests/test_upload_api.py`: 24 test unitari e di integrazione (tutti PASSED)
+---
+
+## TASK M2_MAINTENANCE_01 — DB Cleanup & KB Initialization
+**Status:** DONE
+**Timestamp:** 2026-03-04T16:00:00
+**Changes:**
+- Rimozione KB legacy (`demo`, `test_kb`, `final_test`) e relativi documenti/chunk.
+- Inserimento KB definitive (`bandi`, `progetti`, `programmi`) nella tabella `knowledge_base`.
+- Verifica allineamento cartelle filesystem e records database.
+
+**Verification:**
+- Endpoint `GET /api/v1/kbs` restituisce correttamente le nuove categorie.
+
+---
+
+## TASK M2_EVOLUTION_01 — Conversational RAG Planning & Docs
+**Status:** DONE
+**Timestamp:** 2026-03-04T18:45:00
+**Milestone:** M4 — Conversational RAG (NotebookLM-style)
+**Changes:**
+- Aggiornamento documentazione sorgente: `BRD.md`, `PRD.md`, `SRS.md`, `ARCHITECTURE.md` aggiornati con requisiti per chat history e risposte strutturate.
+- Definizione schema API per supporto `history` nel backend.
+- Progettazione interfaccia React per visualizzazione a "bolle di chat" invece di solo elenco risultati.
+
+---
+
+## TASK M3_CONVERSATIONAL_01 — RAG Conversazionale (NotebookLM-style)
+**Status:** DONE
+**Timestamp:** 2026-03-04T19:30:00
+**Milestone:** M3/M4 — Conversational RAG
+
+**Changes:**
+- `api/app/llm.py`: `synthesize_answer()` accetta `history: Optional[List[Dict]]`; messaggi inseriti tra system prompt e user message; PROMPT_SISTEMA aggiornato con istruzioni Markdown e contesto conversazionale.
+- `api/app/main.py`: aggiunto `ChatMessage` model Pydantic; `QueryRequest` ha nuovo campo `history: Optional[List[ChatMessage]]`; chiamata a `synthesize_answer()` passa history convertita.
+- `frontend/package.json`: aggiunto `react-markdown ^9.0.1` e `remark-gfm ^4.0.0`.
+- `frontend/src/types.ts`: aggiunto `ChatMessage`, `UIChatMessage`, `history` in `QueryRequest`.
+- `frontend/src/pages/SearchPage.tsx`: trasformata in chat UI — stato `messages[]` locale, bolle utente/assistente, ReactMarkdown con classi arbitrary Tailwind, fonti collassabili (▸/▾), auto-scroll, Invio per inviare.
+- `tests/test_llm_synthesis.py`: +5 test TDD — `TestSynthesizeAnswerConHistory` (3 test) + `TestQueryApiConHistory` (2 test).
+
+**Test count:** 106 passed (+ pre-existing failure in test_ingest_pdf non correlata)
+**Commits:** 713a8c8, 6786a1d, 838d3f4, 2681842
