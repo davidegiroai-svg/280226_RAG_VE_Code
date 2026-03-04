@@ -2,7 +2,7 @@
 import os
 import uuid
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, UploadFile, File, Query
+from fastapi import FastAPI, HTTPException, UploadFile, File, Query, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, List
 
@@ -10,6 +10,7 @@ from .db import test_connection, get_db_cursor
 from .query import build_query_sql, parse_results, execute_search
 from .embedding import embed_text
 from .llm import synthesize_answer
+from .auth import require_api_key
 
 app = FastAPI(
     title="RAG VE API",
@@ -98,7 +99,7 @@ def health_check():
         raise HTTPException(status_code=503, detail=f"Database connection failed: {str(e)}")
 
 @app.post("/api/v1/query")
-def query_api(request: QueryRequest):
+def query_api(request: QueryRequest, _auth=Depends(require_api_key)):
     """
     Query API - returns retrieval results.
 
@@ -178,7 +179,7 @@ def health_ready():
 
 
 @app.get("/api/v1/kbs")
-def list_kbs():
+def list_kbs(_auth=Depends(require_api_key)):
     """Elenca le Knowledge Base con conteggio documenti e chunk."""
     try:
         sql = """
@@ -222,6 +223,7 @@ def list_documents(
     kb: Optional[str] = Query(None, description="Filtra per namespace KB"),
     status: Optional[str] = Query(None, description="Filtra per ingest_status (es. done, error)"),
     deleted: Optional[bool] = Query(None, description="Filtra per is_deleted (true/false)"),
+    _auth=Depends(require_api_key),
 ):
     """Elenca i documenti indicizzati con stato ingest e soft-delete flag."""
     try:
@@ -283,6 +285,7 @@ def list_documents(
 def upload_files(
     kb: Optional[str] = Query(None),
     files: List[UploadFile] = File(...),
+    _auth=Depends(require_api_key),
 ):
     """Carica uno o piu' file nella knowledge base specificata."""
     # Validazione kb

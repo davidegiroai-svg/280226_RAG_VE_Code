@@ -309,6 +309,57 @@ docker compose logs -f watcher
 
 ---
 
+## Phase 11 — Auth Completion (M2 COMPLETE!)
+**Status:** DONE
+**Timestamp:** 2026-03-04T13:00:00
+**Milestone v2.0 Progress:** 6/6 phases completed — M2 DONE!
+**Requirements Completed:** AUTH-01, AUTH-02, AUTH-03, AUTH-04
+
+**Changes:**
+- `scripts/migration_m2_auth.sql`: CREATE TABLE api_keys (key_hash SHA-256, is_active, expires_at) + indici
+- `api/app/auth.py`: hash_api_key() + verify_api_key() + require_api_key() Depends
+- `api/app/main.py`: Depends(require_api_key) su tutti gli endpoint /api/v1/*
+- `api/app/manage_keys.py`: CLI create/revoke/list API keys
+- `docker-compose.yml`: env var AUTH_ENABLED al service api
+- `.env.example`: aggiunta AUTH_ENABLED=true
+- `tests/conftest.py`: autouse fixture disable_auth_by_default (AUTH_ENABLED=false per test)
+- `tests/test_auth.py`: 24 test TDD (tutti PASSED) — 102 totali
+
+**Verification:**
+```bash
+docker compose exec api pytest tests/ -v
+# 102 passed in 2.41s
+```
+
+**Creare una API key:**
+```powershell
+docker compose exec api python -m app.manage_keys create --name "app-frontend"
+# Output: X-API-Key: <uuid-raw> — salvare questo valore!
+```
+
+**Usare la API key:**
+```powershell
+$headers = @{"X-API-Key" = "<uuid-raw>"}
+Invoke-RestMethod -Uri 'http://localhost:8000/api/v1/query' -Method POST -ContentType 'application/json' -Headers $headers -Body '{"query": "bando"}'
+```
+
+---
+
+## Milestone v2.0 — COMPLETATA
+**Data:** 2026-03-04
+**Fasi:** 6/6 completate (Phase 6-11)
+**Requirements:** 25/25 completati (PDF-01..04, UPLD-01..07, API-01..02, LLM-01..03, WTCH-01..04, HYBR-01..03, AUTH-01..04)
+**Test:** 102 test totali, tutti PASSED
+**Componenti aggiunti:**
+- PDF ingest (pymupdf4llm, page chunks)
+- Upload API (POST /upload, GET /kbs, GET /health/ready)
+- LLM synthesis (Ollama /api/chat, fallback graceful)
+- Watcher (PollingObserver, auto-ingest, soft delete, GET /documents)
+- Hybrid search (tsvector + RRF k=60, search_mode vector/fts/hybrid)
+- Auth (API key X-API-Key, SHA-256 hash, manage_keys CLI)
+
+---
+
 ## Phase 10 — Hybrid Search Completion
 **Status:** DONE
 **Timestamp:** 2026-03-04T12:00:00
