@@ -15,9 +15,10 @@ RUN apk add --no-cache gettext
 
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf.template /etc/nginx/nginx.conf.template
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 EXPOSE 80
 
-# envsubst sostituisce solo ${FRONTEND_API_KEY}, lasciando le variabili nginx ($uri, $host, ecc.) intatte
-CMD ["/bin/sh", "-c", \
-  "envsubst '$FRONTEND_API_KEY' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+# Lo script gestisce sia FRONTEND_API_KEY valorizzata che vuota
+CMD ["/docker-entrypoint.sh"]
