@@ -91,5 +91,15 @@ services:
       - watcher
     restart: unless-stopped
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - api
+    environment:
+      FRONTEND_API_KEY: "${FRONTEND_API_KEY:-}"
+    restart: unless-stopped
+
 volumes:
   pgdata:

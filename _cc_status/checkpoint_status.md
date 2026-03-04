@@ -345,6 +345,42 @@ Invoke-RestMethod -Uri 'http://localhost:8000/api/v1/query' -Method POST -Conten
 
 ---
 
+## Phase 12 — Frontend Web M3
+**Status:** DONE
+**Timestamp:** 2026-03-04
+**Milestone:** M3 — Frontend Web RAG Venezia
+
+**Componenti creati:**
+- `frontend/` — nuova directory con stack Vite + React 18 + TypeScript + Tailwind CSS 3
+- `frontend/Dockerfile` — multi-stage: node:20-alpine build → nginx:alpine serve
+- `frontend/nginx.conf.template` — proxy `/api/*` e `/health*` con envsubst per FRONTEND_API_KEY
+- `frontend/src/types.ts` — interfacce TypeScript da API (QueryRequest, Source, QueryResponse, KbInfo, DocumentInfo, UploadResponse)
+- `frontend/src/api.ts` — client API tipato: searchQuery, listKbs, listDocuments, uploadFiles
+- `frontend/src/App.tsx` — tab navigation responsive (Ricerca/Upload/Documenti/KB)
+- `frontend/src/pages/SearchPage.tsx` — ricerca con KB selector, settings collassabili, risultati con score badge, risposta LLM
+- `frontend/src/pages/UploadPage.tsx` — drag & drop upload con validazione tipo/dimensione
+- `frontend/src/pages/DocumentsPage.tsx` — tabella documenti con status badge e filtro KB
+- `frontend/src/pages/KBsPage.tsx` — griglia cards KB con statistiche
+- `frontend/src/components/` — SearchBar, SearchResult, SearchSettings, FileUpload, KBSelector, DocumentList, Spinner, ErrorMessage
+
+**Docker Compose:**
+- Aggiunto servizio `frontend` in `docker-compose.yml` (porta `${FRONTEND_PORT:-3000}:80`)
+- Aggiunto `FRONTEND_PORT` e `FRONTEND_API_KEY` in `.env.example`
+
+**Primo avvio:**
+```powershell
+# 1. Creare API key per il frontend
+docker compose exec api python -m app.manage_keys create --name "frontend"
+# → Copiare il valore come FRONTEND_API_KEY in .env
+
+# 2. Avviare il frontend
+docker compose up -d --build frontend
+
+# 3. Aprire http://localhost:3000
+```
+
+---
+
 ## Milestone v2.0 — COMPLETATA
 **Data:** 2026-03-04
 **Fasi:** 6/6 completate (Phase 6-11)

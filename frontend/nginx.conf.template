@@ -1,0 +1,29 @@
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Proxy API requests con API key iniettata da variabile d'ambiente
+    location /api/ {
+        proxy_pass http://api:8000/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-API-Key ${FRONTEND_API_KEY};
+        proxy_read_timeout 120s;
+    }
+
+    # Proxy health endpoints
+    location ~ ^/health {
+        proxy_pass http://api:8000$request_uri;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-API-Key ${FRONTEND_API_KEY};
+    }
+
+    # SPA fallback: tutte le route non-file tornano a index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
