@@ -121,7 +121,7 @@ def test_list_files_includes_pdf(tmp_path):
     extensions = {f.suffix.lower() for f in files}
 
     assert ".pdf" in extensions
-    assert ".docx" not in extensions
+    assert ".docx" in extensions
 
 
 # ─────────────────────────────────────────────
