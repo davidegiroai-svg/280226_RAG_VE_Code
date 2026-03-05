@@ -510,3 +510,79 @@ Invoke-RestMethod -Uri 'http://localhost:8000/api/v1/query' -Method POST -Conten
 
 **Test count:** 106 passed (+ pre-existing failure in test_ingest_pdf non correlata)
 **Commits:** 713a8c8, 6786a1d, 838d3f4, 2681842
+
+---
+
+## TASK M3_STREAMING_SSE — Streaming SSE (fix Gateway Timeout)
+**Status:** DONE
+**Timestamp:** 2026-03-04T21:00:00
+**Milestone:** M3 — Streaming per prevenire HTTP 504 su LLM lento
+
+**Problema risolto:** nginx `proxy_read_timeout 120s` causava 504 con LLM su CPU (90-130s).
+Con `stream: True` in Ollama il primo token arriva in 1-3s, nginx resetta il timeout ad ogni chunk.
+
+**Changes:**
+- `api/app/llm.py`: aggiunto `import json`, `Generator` typing; nuova funzione `synthesize_stream()` generator con streaming NDJSON da Ollama `/api/chat` (stream=True).
+- `api/app/main.py`: aggiunto `import json`, `StreamingResponse`; nuovo endpoint `POST /api/v1/query/stream` — invia fonti + token LLM come eventi SSE (`data: {"type":...}`).
+- `frontend/nginx.conf.template`: aggiunto `proxy_buffering off` + `proxy_cache off` nel blocco `/api/` per passare i chunk SSE senza buffering.
+- `frontend/src/api.ts`: importato `Source`; aggiunto `StreamCallbacks` interface + `searchQueryStream()` con ReadableStream reader.
+- `frontend/src/pages/SearchPage.tsx`: `handleSend` usa `searchQueryStream()` — messaggio assistente aggiunto vuoto subito, aggiornato token per token (typing effect), `onDone`/`onError` gestiscono setLoading.
+- `tests/test_stream.py`: 3 nuovi test SSE (retrieval-only, sources vuote, streaming LLM mockato).
+
+**Test count:** 110 passed
+**Formato SSE:**
+```
+data: {"type": "sources", "sources": [...]}
+data: {"type": "token", "content": "..."}   ← ripetuto per ogni token
+data: [DONE]
+```
+
+---
+
+## TASK M3_LLM_DIAGNOSTICS — Fix logging LLM synthesis pipeline
+**Status:** DONE
+**Timestamp:** 2026-03-05T10:00:00
+**Milestone:** M3 — Diagnostica e fix robustezza pipeline LLM
+
+**Problema investigato:**
+Il frontend mostrava il messaggio di fallback LLM ("Il servizio di elaborazione è temporaneamente
+non disponibile…") nonostante il vector search funzionasse correttamente.
+
+**Root cause identificata:**
+- Il modello `llama3.2` è presente in Ollama (confermato via `/api/tags`)
+- La pipeline SSE funziona: i token vengono generati correttamente (confermato con curl 180s)
+- Il fallback era causato dal **cold start** del modello (60-120s alla prima chiamata)
+- Le eccezioni in `synthesize_answer` e `synthesize_stream` venivano catturate silenziosamente
+  senza logging — qualsiasi errore futuro sarebbe invisibile
+
+**File modificati:**
+- `api/app/llm.py`:
+  - Aggiunto `import logging` e `logger = logging.getLogger(__name__)`
+  - `synthesize_answer`: default timeout `"30"` → `"120"` (allineato a `synthesize_stream`)
+  - `synthesize_answer`: `except (ConnectionError, Timeout)` e `except Exception` ora loggano il messaggio dell'eccezione con `logger.warning()`
+  - `synthesize_stream`: `except Exception` ora logga il messaggio dell'eccezione con `logger.warning()`
+
+**Verifica:**
+```powershell
+# Test suite — 110 passed
+docker compose exec api pytest tests/ -v
+
+# Log API: se LLM ha errori, ora appariranno come WARNING con dettaglio
+docker compose logs api --tail=50
+
+# Test streaming diretto (attendere 60-120s per cold start)
+curl -s -X POST http://localhost:8000/api/v1/query/stream `
+  -H "Content-Type: application/json" `
+  -H "X-API-Key: 284c95e3-369c-40a2-b5b1-298190ee561b" `
+  -d "{\"query\":\"cos e il PNRR?\",\"synthesize\":true,\"top_k\":2}" `
+  --max-time 180
+```
+
+**Output atteso:**
+```
+data: {"type": "sources", "sources": [...]}
+data: {"type": "thinking"}
+data: {"type": "token", "content": "..."}
+... (molti token)
+data: [DONE]
+```
