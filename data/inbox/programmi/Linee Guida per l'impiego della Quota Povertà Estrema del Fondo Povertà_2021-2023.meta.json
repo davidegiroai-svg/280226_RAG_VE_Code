@@ -1,0 +1,20 @@
+{
+  "titolo": "Linee Guida per l'impiego della Quota Povertà Estrema del Fondo Povertà 2021-2023",
+  "tipo_documento": "linee_guida",
+  "fonte_programma": "Fondo Povertà",
+  "fondo": "Fondo Povertà",
+  "ente_gestore": "Ministero del Lavoro e delle Politiche Sociali",
+  "anno": 2021,
+  "lingua": "it",
+  "targets": ["Adulti", "Famiglie", "Anziani", "Migranti"],
+  "ambiti": [
+    "Grave emarginazione",
+    "Disagio socio-economico",
+    "Disagio abitativo",
+    "Socialità/Comunità"
+  ],
+  "dotazione_finanziaria": null,
+  "scadenza": "2023-12-31",
+  "codice_avviso": null,
+  "note": "Linee guida ministeriali per l'utilizzo della quota del Fondo Povertà destinata alle persone in condizione di povertà estrema (senza fissa dimora, persone in strada). Definisce tipologie di intervento, soggetti beneficiari e modalità di rendicontazione."
+}

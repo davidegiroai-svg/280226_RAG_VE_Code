@@ -1,0 +1,19 @@
+{
+  "titolo": "Piano per la Non Autosufficienza 2022-2024",
+  "tipo_documento": "linee_guida",
+  "fonte_programma": "Fondo Nazionale Non Autosufficienza",
+  "fondo": null,
+  "ente_gestore": "Ministero del Lavoro e delle Politiche Sociali",
+  "anno": 2022,
+  "lingua": "it",
+  "targets": ["Anziani", "Adulti", "Famiglie"],
+  "ambiti": [
+    "Disabilità/Non autosufficienza",
+    "Socialità/Comunità",
+    "Disagio socio-economico"
+  ],
+  "dotazione_finanziaria": null,
+  "scadenza": "2024-12-31",
+  "codice_avviso": null,
+  "note": "Piano triennale nazionale per la non autosufficienza 2022-2024. Definisce indirizzi, obiettivi e risorse per i servizi domiciliari, residenziali e semiresidenziali per anziani non autosufficienti e persone con disabilità grave."
+}

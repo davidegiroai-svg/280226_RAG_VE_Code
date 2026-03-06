@@ -1,0 +1,15 @@
+{
+  "titolo": "Scheda Progetto PN Metro+ - Azione 4.11.2",
+  "tipo_documento": "scheda_progetto",
+  "fonte_programma": "PN Metro+",
+  "fondo": "FSE+",
+  "ente_gestore": "Comune di Venezia",
+  "anno": 2023,
+  "lingua": "it",
+  "targets": ["Adulti", "Migranti"],
+  "ambiti": ["Grave emarginazione", "Disagio socio-economico"],
+  "dotazione_finanziaria": null,
+  "scadenza": null,
+  "codice_avviso": null,
+  "note": "Azione 4.11.2 riguarda persone senza fissa dimora/grave emarginazione"
+}

@@ -1,0 +1,19 @@
+{
+  "titolo": "DesTEENazioni - Allegato A: Domanda di Finanziamento e Dichiarazioni",
+  "tipo_documento": "allegato",
+  "fonte_programma": "PN Inclusione",
+  "fondo": "FSE+",
+  "ente_gestore": "Ministero del Lavoro e delle Politiche Sociali",
+  "anno": 2024,
+  "lingua": "it",
+  "targets": ["Minori", "ETS"],
+  "ambiti": [
+    "Child guarantee",
+    "Socialità/Comunità",
+    "Disagio socio-economico"
+  ],
+  "dotazione_finanziaria": null,
+  "scadenza": null,
+  "codice_avviso": null,
+  "note": "Modello di domanda di finanziamento e dichiarazioni per l'avviso DesTEENazioni (PN Inclusione). Destinato a ETS che co-progettano spazi multifunzionali per adolescenti."
+}

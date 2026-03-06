@@ -1,0 +1,24 @@
+{
+  "titolo": "Programma Nazionale Metro Plus e Città Medie Sud 2021-2027",
+  "tipo_documento": "programma_operativo",
+  "fonte_programma": "PN Metro+",
+  "fondo": "FESR",
+  "ente_gestore": "Ministero per il Sud e la Coesione Territoriale",
+  "anno": 2021,
+  "lingua": "it",
+  "targets": ["Adulti", "Minori", "Anziani", "Famiglie", "Migranti", "Cittadini", "ATS/PA"],
+  "ambiti": [
+    "Disabilità/Non autosufficienza",
+    "Disagio socio-economico",
+    "Disagio abitativo",
+    "Grave emarginazione",
+    "Socialità/Comunità",
+    "Infrastrutture per l'inclusione sociale",
+    "Rafforzamento capacità amministrativa",
+    "Child guarantee"
+  ],
+  "dotazione_finanziaria": null,
+  "scadenza": "2029-12-31",
+  "codice_avviso": null,
+  "note": "Programma Nazionale per le città metropolitane e le città medie del Sud Italia. Finanzia servizi sociali, infrastrutture per l'inclusione, interventi per persone vulnerabili nelle aree urbane. Include azioni 4.8.1, 4.11.1, 4.11.2, 4.12.1."
+}

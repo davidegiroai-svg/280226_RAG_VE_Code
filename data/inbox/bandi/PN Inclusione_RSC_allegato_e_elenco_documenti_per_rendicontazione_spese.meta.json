@@ -1,0 +1,18 @@
+{
+  "titolo": "RSC/SFL - Allegato E: Elenco Documenti per Rendicontazione Spese",
+  "tipo_documento": "allegato",
+  "fonte_programma": "PN Inclusione",
+  "fondo": "FSE+",
+  "ente_gestore": "Ministero del Lavoro e delle Politiche Sociali",
+  "anno": 2023,
+  "lingua": "it",
+  "targets": ["ETS", "ATS/PA"],
+  "ambiti": [
+    "Occupabilità",
+    "Rafforzamento capacità amministrativa"
+  ],
+  "dotazione_finanziaria": null,
+  "scadenza": null,
+  "codice_avviso": null,
+  "note": "Elenco dei documenti necessari per la rendicontazione delle spese nell'ambito dell'avviso RSC/SFL (PN Inclusione FSE+)."
+}

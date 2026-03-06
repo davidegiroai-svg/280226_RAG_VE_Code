@@ -1,0 +1,15 @@
+{
+  "titolo": "Scheda Progetto PN Metro+ - Azione 4.12.1",
+  "tipo_documento": "scheda_progetto",
+  "fonte_programma": "PN Metro+",
+  "fondo": "FSE+",
+  "ente_gestore": "Comune di Venezia",
+  "anno": 2023,
+  "lingua": "it",
+  "targets": ["Migranti", "Adulti"],
+  "ambiti": ["Disagio socio-economico", "Disagio abitativo", "Occupabilità"],
+  "dotazione_finanziaria": null,
+  "scadenza": null,
+  "codice_avviso": null,
+  "note": "Azione 4.12.1 riguarda migranti e integrazione"
+}

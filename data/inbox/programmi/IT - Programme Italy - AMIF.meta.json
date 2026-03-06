@@ -1,0 +1,21 @@
+{
+  "titolo": "Programma Italia — Fondo Asilo, Migrazione e Integrazione (AMIF) 2021-2027",
+  "tipo_documento": "programma_operativo",
+  "fonte_programma": "AMIF",
+  "fondo": "AMIF",
+  "ente_gestore": "Ministero dell'Interno",
+  "anno": 2021,
+  "lingua": "it",
+  "targets": ["Migranti", "Adulti", "Minori", "Famiglie", "Cittadini"],
+  "ambiti": [
+    "Disagio socio-economico",
+    "Grave emarginazione",
+    "Emergenza",
+    "Discriminazione/Lotta alla violenza",
+    "Socialità/Comunità"
+  ],
+  "dotazione_finanziaria": null,
+  "scadenza": "2029-12-31",
+  "codice_avviso": null,
+  "note": "Programma nazionale AMIF 2021-2027 per l'asilo, la migrazione e l'integrazione. Finanzia interventi per richiedenti asilo, rifugiati, migranti irregolari e integrazione di cittadini di paesi terzi."
+}

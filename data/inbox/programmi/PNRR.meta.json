@@ -1,0 +1,25 @@
+{
+  "titolo": "Piano Nazionale di Ripresa e Resilienza (PNRR)",
+  "tipo_documento": "programma_operativo",
+  "fonte_programma": "PNRR",
+  "fondo": "PNRR",
+  "ente_gestore": "Presidenza del Consiglio dei Ministri",
+  "anno": 2021,
+  "lingua": "it",
+  "targets": ["Minori", "Adulti", "Donne", "Anziani", "Famiglie", "Cittadini", "Migranti", "ATS/PA"],
+  "ambiti": [
+    "Disabilità/Non autosufficienza",
+    "Disagio socio-economico",
+    "Disagio abitativo",
+    "Grave emarginazione",
+    "Occupabilità",
+    "Socialità/Comunità",
+    "Child guarantee",
+    "Infrastrutture per l'inclusione sociale",
+    "Rafforzamento capacità amministrativa"
+  ],
+  "dotazione_finanziaria": "191,5 miliardi €",
+  "scadenza": "2026-12-31",
+  "codice_avviso": null,
+  "note": "Piano Nazionale di Ripresa e Resilienza italiano finanziato dal programma Next Generation EU. Include missioni su salute, digitalizzazione, infrastrutture, istruzione, inclusione sociale e transizione verde."
+}

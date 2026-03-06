@@ -1,0 +1,23 @@
+{
+  "titolo": "Programma Regionale Veneto FSE+ 2021-2027",
+  "tipo_documento": "programma_operativo",
+  "fonte_programma": "PR Veneto FSE+",
+  "fondo": "FSE+",
+  "ente_gestore": "Regione Veneto",
+  "anno": 2021,
+  "lingua": "it",
+  "targets": ["Adulti", "Minori", "Donne", "Anziani", "Migranti", "ETS", "ATS/PA", "Famiglie"],
+  "ambiti": [
+    "Disabilità/Non autosufficienza",
+    "Disagio socio-economico",
+    "Occupabilità",
+    "Socialità/Comunità",
+    "Discriminazione/Lotta alla violenza",
+    "Rafforzamento capacità amministrativa",
+    "Child guarantee"
+  ],
+  "dotazione_finanziaria": null,
+  "scadenza": "2029-12-31",
+  "codice_avviso": null,
+  "note": "Programma Regionale Veneto a valere sul Fondo Sociale Europeo Plus 2021-2027. Priorità su occupazione, inclusione sociale, istruzione e formazione professionale. Include interventi per persone vulnerabili, disabili, migranti."
+}

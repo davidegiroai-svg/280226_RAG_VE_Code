@@ -1,0 +1,18 @@
+{
+  "titolo": "RSC/SFL - Allegato A: Domanda di Finanziamento e Dichiarazioni",
+  "tipo_documento": "allegato",
+  "fonte_programma": "PN Inclusione",
+  "fondo": "FSE+",
+  "ente_gestore": "Ministero del Lavoro e delle Politiche Sociali",
+  "anno": 2023,
+  "lingua": "it",
+  "targets": ["Adulti", "ETS", "ATS/PA"],
+  "ambiti": [
+    "Occupabilità",
+    "Disagio socio-economico"
+  ],
+  "dotazione_finanziaria": null,
+  "scadenza": null,
+  "codice_avviso": null,
+  "note": "Modello di domanda di finanziamento per l'avviso RSC (Reddito di Cittadinanza / Supporto per la Formazione e il Lavoro). Destinato a enti che realizzano percorsi di attivazione lavorativa."
+}

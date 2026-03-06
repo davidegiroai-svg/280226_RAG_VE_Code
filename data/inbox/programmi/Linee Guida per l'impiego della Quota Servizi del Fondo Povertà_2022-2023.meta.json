@@ -1,0 +1,20 @@
+{
+  "titolo": "Linee Guida per l'impiego della Quota Servizi del Fondo Povertà 2022-2023",
+  "tipo_documento": "linee_guida",
+  "fonte_programma": "Fondo Povertà",
+  "fondo": "Fondo Povertà",
+  "ente_gestore": "Ministero del Lavoro e delle Politiche Sociali",
+  "anno": 2022,
+  "lingua": "it",
+  "targets": ["Adulti", "Famiglie", "Minori", "Anziani"],
+  "ambiti": [
+    "Disagio socio-economico",
+    "Disabilità/Non autosufficienza",
+    "Socialità/Comunità",
+    "Occupabilità"
+  ],
+  "dotazione_finanziaria": null,
+  "scadenza": "2023-12-31",
+  "codice_avviso": null,
+  "note": "Linee guida ministeriali per l'utilizzo della quota servizi del Fondo Povertà, destinata al potenziamento dei servizi sociali territoriali e degli interventi per le famiglie in difficoltà economica (ReI/RdC)."
+}

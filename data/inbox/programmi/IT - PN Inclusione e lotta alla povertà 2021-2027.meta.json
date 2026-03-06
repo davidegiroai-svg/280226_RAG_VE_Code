@@ -1,0 +1,26 @@
+{
+  "titolo": "Programma Nazionale Inclusione e lotta alla povertà 2021-2027",
+  "tipo_documento": "programma_operativo",
+  "fonte_programma": "PN Inclusione",
+  "fondo": "FSE+",
+  "ente_gestore": "Ministero del Lavoro e delle Politiche Sociali",
+  "anno": 2021,
+  "lingua": "it",
+  "targets": ["Minori", "Adulti", "Donne", "Anziani", "Famiglie", "ETS", "Cittadini", "Migranti"],
+  "ambiti": [
+    "Disabilità/Non autosufficienza",
+    "Disagio socio-economico",
+    "Disagio abitativo",
+    "Grave emarginazione",
+    "Occupabilità",
+    "Socialità/Comunità",
+    "Discriminazione/Lotta alla violenza",
+    "Rafforzamento capacità amministrativa",
+    "Infrastrutture per l'inclusione sociale",
+    "Child guarantee"
+  ],
+  "dotazione_finanziaria": "1,18 miliardi €",
+  "scadenza": "2029-12-31",
+  "codice_avviso": null,
+  "note": "Programma Nazionale FSE+ 2021-2027 per l'inclusione sociale e la lotta alla povertà. Finanzia interventi per persone in condizioni di disagio, ETS, servizi sociali. Include DesTEENazioni, RSC (Reddito di Cittadinanza/SFL), e co-progettazione con terzo settore."
+}

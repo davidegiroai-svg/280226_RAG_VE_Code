@@ -1,0 +1,18 @@
+{
+  "titolo": "RSC/SFL - Allegato B: Modello Proposta Progettuale",
+  "tipo_documento": "allegato",
+  "fonte_programma": "PN Inclusione",
+  "fondo": "FSE+",
+  "ente_gestore": "Ministero del Lavoro e delle Politiche Sociali",
+  "anno": 2023,
+  "lingua": "it",
+  "targets": ["Adulti", "ETS"],
+  "ambiti": [
+    "Occupabilità",
+    "Disagio socio-economico"
+  ],
+  "dotazione_finanziaria": null,
+  "scadenza": null,
+  "codice_avviso": null,
+  "note": "Modello per la redazione della proposta progettuale nell'ambito dell'avviso RSC/SFL (PN Inclusione FSE+)."
+}

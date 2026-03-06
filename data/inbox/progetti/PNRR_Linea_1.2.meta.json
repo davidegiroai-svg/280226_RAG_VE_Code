@@ -1,0 +1,15 @@
+{
+  "titolo": "Scheda Progetto PNRR - Linea 1.2",
+  "tipo_documento": "scheda_progetto",
+  "fonte_programma": "PNRR",
+  "fondo": "PNRR",
+  "ente_gestore": "Comune di Venezia",
+  "anno": 2023,
+  "lingua": "it",
+  "targets": ["Adulti", "Anziani"],
+  "ambiti": ["Disabilità/Non autosufficienza", "Occupabilità"],
+  "dotazione_finanziaria": null,
+  "scadenza": null,
+  "codice_avviso": null,
+  "note": "PNRR Linea 1.2 - Percorsi di autonomia per persone con disabilità"
+}

@@ -8,6 +8,8 @@ __pycache__/
 data/inbox/**
 !data/inbox/.gitkeep
 !data/inbox/**/.gitkeep
+# Eccezione: i file .meta.json sidecar sono configurazione, non dati binari
+!data/inbox/**/*.meta.json
 # Git worktrees
 .worktrees/
 
