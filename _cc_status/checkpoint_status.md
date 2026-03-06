@@ -1,5 +1,44 @@
 # Checkpoint Status
 
+**Checkpoint updated:** 2026-03-06 by M3_FR7_FR8_WatcherStability_ReasoningRAG
+
+## TASK M3-FR7 — Watcher Stability (on_modified + namespace validation + DB health check)
+**Status:** DONE
+**Timestamp:** 2026-03-06
+**Files Modified:** `api/app/watcher.py`, `tests/test_watcher.py`
+
+### Difetti corretti:
+- **W1** `on_modified()` implementato via `_validate_and_ingest()` condiviso con `on_created`
+- **W2** Validazione profondità namespace: file in `/inbox/kb/sub/file.txt` ignorati (solo profondità 2 accettata)
+- **W3** `_check_db_connection()` aggiunto, chiamato in `main()` al bootstrap con log warning se offline
+- **L3** `_validate_and_ingest()` elimina duplicazione tra `on_created` e `on_modified`
+
+### Test aggiunti:
+- `TestInboxHandlerOnModified` (3 test): on_modified rilancia ingest, ignora directory, ignora sub-dir
+- `TestWatcherMain` (2 test): warning DB offline, info DB online
+
+---
+
+## TASK M3-FR8 — Reasoning RAG (PROMPT_SISTEMA v2 + _build_context condiviso)
+**Status:** DONE
+**Timestamp:** 2026-03-06
+**Files Modified:** `api/app/llm.py`, `tests/test_llm.py` (creato)
+
+### Miglioramenti:
+- **L1** PROMPT_SISTEMA riscritta con grounding assoluto ("esclusivamente") — no allucinazioni
+- **L2** Chain-of-thought implicito: regola 5 richiede ragionamento breve prima della risposta
+- **L3** `_build_context()` funzione condivisa, elimina duplicazione tra `synthesize_answer` e `synthesize_stream`
+- Citazioni inline `[Documento N]` ora richieste esplicitamente dopo ogni affermazione
+
+### Test creati (tests/test_llm.py):
+- 7 test: `_build_context` con chunks, vuoto, namespace fallback; PROMPT_SISTEMA keywords; integrazione synthesize_answer
+
+### Conteggio test:
+- Prima: 110 test
+- Dopo: **122 test** (12 nuovi)
+
+---
+
 **Checkpoint updated:** 2026-03-03T10:00:00 by M1_TASK_06_Final_Check
 
 ## TASK CC-01 — Bootstrap Repo + Audit Wrapper

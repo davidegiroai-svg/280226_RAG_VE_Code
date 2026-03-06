@@ -368,3 +368,99 @@ class TestDocumentsEndpoint:
         with patch("app.main.get_db_cursor", return_value=ctx):
             resp = client.get("/api/v1/documents")
         assert resp.status_code == 500
+
+
+# ─────────────────────────────────────────────────────────
+# Test InboxHandler — on_modified + namespace validation
+# ─────────────────────────────────────────────────────────
+
+class TestInboxHandlerOnModified:
+
+    def test_file_modified_rilancia_ingest(self):
+        """on_modified deve chiamare ingest_single_file come on_created."""
+        from watchdog.events import FileModifiedEvent
+
+        handler = InboxHandler("/data/inbox")
+        mock_result = {"status": "done", "chunks_inserted": 2}
+
+        with patch("app.watcher.ingest_single_file", return_value=mock_result) as mock_ingest:
+            event = FileModifiedEvent("/data/inbox/demo/file.txt")
+            event.is_directory = False
+            handler.on_modified(event)
+
+        mock_ingest.assert_called_once()
+
+    def test_file_modified_ignora_directory(self):
+        """on_modified su directory non chiama ingest."""
+        from watchdog.events import FileModifiedEvent
+
+        handler = InboxHandler("/data/inbox")
+        with patch("app.watcher.ingest_single_file") as mock_ingest:
+            event = FileModifiedEvent("/data/inbox/demo/")
+            event.is_directory = True
+            handler.on_modified(event)
+        mock_ingest.assert_not_called()
+
+    def test_namespace_troppo_annidato_viene_ignorato(self):
+        """File in /data/inbox/kb/subdir/file.txt deve essere ignorato."""
+        from watchdog.events import FileCreatedEvent
+
+        handler = InboxHandler("/data/inbox")
+        with patch("app.watcher.ingest_single_file") as mock_ingest:
+            event = FileCreatedEvent("/data/inbox/kb/subdir/file.txt")
+            event.is_directory = False
+            handler.on_created(event)
+        mock_ingest.assert_not_called()
+
+
+# ─────────────────────────────────────────────────────────
+# Test main() — DB health check al bootstrap
+# ─────────────────────────────────────────────────────────
+
+class TestWatcherMain:
+
+    def test_avvia_senza_db_logga_warning(self, monkeypatch, caplog):
+        """Il watcher deve loggare warning se DB non raggiungibile al bootstrap."""
+        import logging
+        from unittest.mock import MagicMock
+
+        monkeypatch.setenv("INBOX_ROOT", "/tmp/test_inbox_health")
+        monkeypatch.setenv("WATCHER_POLL_SECONDS", "1")
+
+        fake_observer = MagicMock()
+        fake_observer.is_alive.return_value = False
+
+        with patch("app.watcher.PollingObserver", return_value=fake_observer), \
+             patch("app.watcher._check_db_connection", return_value=False), \
+             patch("pathlib.Path.mkdir"), \
+             caplog.at_level(logging.WARNING, logger="app.watcher"):
+            from app.watcher import main
+            try:
+                main()
+            except Exception:
+                pass
+
+        assert any("DB" in r.message for r in caplog.records if r.levelno >= logging.WARNING)
+
+    def test_avvia_con_db_logga_info(self, monkeypatch, caplog):
+        """Con DB raggiungibile il watcher logga info di conferma."""
+        import logging
+        from unittest.mock import MagicMock
+
+        monkeypatch.setenv("INBOX_ROOT", "/tmp/test_inbox_ok")
+        monkeypatch.setenv("WATCHER_POLL_SECONDS", "1")
+
+        fake_observer = MagicMock()
+        fake_observer.is_alive.return_value = False
+
+        with patch("app.watcher.PollingObserver", return_value=fake_observer), \
+             patch("app.watcher._check_db_connection", return_value=True), \
+             patch("pathlib.Path.mkdir"), \
+             caplog.at_level(logging.INFO, logger="app.watcher"):
+            from app.watcher import main
+            try:
+                main()
+            except Exception:
+                pass
+
+        assert any("raggiungibile" in r.message for r in caplog.records if r.levelno >= logging.INFO)

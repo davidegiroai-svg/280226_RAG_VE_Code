@@ -27,6 +27,23 @@ def _env(name: str, default: str) -> str:
     return v if v not in (None, "") else default
 
 
+def _check_db_connection() -> bool:
+    """Verifica che il DB sia raggiungibile. Usato al bootstrap.
+
+    Returns:
+        True se la connessione ha successo, False altrimenti.
+    """
+    try:
+        conn = get_conn()
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+        conn.close()
+        return True
+    except Exception as e:
+        logger.warning("Health check DB fallito al bootstrap: %s", e)
+        return False
+
+
 def soft_delete_document(source_path: str) -> None:
     """Soft-delete di un documento rimosso dal filesystem.
 
@@ -77,25 +94,33 @@ class InboxHandler(FileSystemEventHandler):
     """Handler eventi filesystem per la inbox dei documenti.
 
     Struttura attesa: /data/inbox/<kb_namespace>/<file>
-    Il kb_namespace viene derivato dal nome della directory padre.
+    File in sotto-directory più profonde vengono ignorati.
     """
 
     def __init__(self, inbox_root: str):
         self.inbox_root = Path(inbox_root)
 
-    def on_created(self, event) -> None:
-        """Gestisce la creazione di un nuovo file: avvia auto-ingest."""
-        if event.is_directory:
-            return
-
-        fp = Path(event.src_path)
+    def _validate_and_ingest(self, src_path: str, event_type: str) -> None:
+        """Valida path e avvia ingest. Usato da on_created e on_modified."""
+        fp = Path(src_path)
         if fp.suffix.lower() not in SUPPORTED_EXTENSIONS:
             logger.debug(f"File ignorato (estensione non supportata): {fp}")
             return
 
-        # Namespace KB = nome della directory padre rispetto a inbox_root
-        kb_namespace = fp.parent.name
-        logger.info(f"Nuovo file rilevato: {fp} (KB: {kb_namespace})")
+        # Validazione: il file deve essere direttamente in /inbox/<kb_namespace>/
+        # File in sotto-directory più profonde vengono ignorati
+        try:
+            relative = fp.relative_to(self.inbox_root)
+        except ValueError:
+            logger.warning(f"File fuori dalla inbox root: {fp}")
+            return
+
+        if len(relative.parts) != 2:
+            logger.debug(f"File in sotto-directory ignorato ({event_type}): {fp}")
+            return
+
+        kb_namespace = relative.parts[0]
+        logger.info(f"Evento {event_type}: {fp} (KB: {kb_namespace})")
 
         try:
             result = ingest_single_file(fp, kb_namespace)
@@ -105,6 +130,18 @@ class InboxHandler(FileSystemEventHandler):
             )
         except Exception as e:
             logger.error(f"Errore durante l'ingest di {fp}: {e}")
+
+    def on_created(self, event) -> None:
+        """Gestisce la creazione di un nuovo file: avvia auto-ingest."""
+        if event.is_directory:
+            return
+        self._validate_and_ingest(event.src_path, "created")
+
+    def on_modified(self, event) -> None:
+        """Gestisce la modifica di un file esistente: rilancia l'ingest."""
+        if event.is_directory:
+            return
+        self._validate_and_ingest(event.src_path, "modified")
 
     def on_deleted(self, event) -> None:
         """Gestisce la cancellazione di un file: soft delete nel DB."""
@@ -167,6 +204,15 @@ def main() -> None:
 
     # Crea la directory inbox se non esiste ancora
     Path(inbox_root).mkdir(parents=True, exist_ok=True)
+
+    # Health check DB al bootstrap
+    if not _check_db_connection():
+        logger.warning(
+            "DB non raggiungibile al bootstrap — il watcher procede ma "
+            "le operazioni DB falliranno fino alla disponibilità del DB."
+        )
+    else:
+        logger.info("DB raggiungibile — watcher pronto.")
 
     watcher = KBWatcher(inbox_root, poll_seconds)
 
