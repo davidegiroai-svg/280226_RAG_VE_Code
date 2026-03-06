@@ -71,7 +71,24 @@ def read_text_file(p: Path) -> str:
     return content
 
 
-def chunk_text(text: str, size: int = 1200, overlap: int = 200) -> Iterable[Tuple[int, str]]:
+def read_docx_file(p: Path) -> str:
+    """Estrae testo da file DOCX: paragrafi + celle tabelle, separati da newline."""
+    import docx
+    doc = docx.Document(str(p))
+    parts = []
+    for para in doc.paragraphs:
+        t = para.text.strip()
+        if t:
+            parts.append(t)
+    for table in doc.tables:
+        for row in table.rows:
+            row_text = " | ".join(cell.text.strip() for cell in row.cells if cell.text.strip())
+            if row_text:
+                parts.append(row_text)
+    return "\n".join(parts)
+
+
+def chunk_text(text: str, size: int = 3000, overlap: int = 500) -> Iterable[Tuple[int, str]]:
     text = text.strip()
     if not text:
         return
@@ -184,7 +201,7 @@ def insert_chunks(
 
     # Comportamento originale per TXT/MD/CSV/JSON
     chunks_data = []
-    for chunk_index, chunk in chunk_text(text, 1200, 200):
+    for chunk_index, chunk in chunk_text(text, 3000, 500):
         chunks_data.append((chunk_index, chunk))
 
     if not chunks_data:
@@ -292,7 +309,11 @@ def ingest_single_file(file_path: Path, kb_namespace: str) -> dict:
 
 
 def read_pdf_chunks(p: Path) -> list:
-    """Legge un PDF con pymupdf4llm e restituisce chunk per pagina.
+    """Legge un PDF con pymupdf4llm e restituisce chunk sub-pagina.
+
+    Ogni pagina viene ulteriormente suddivisa con chunk_text() (size=800, overlap=150)
+    per creare embedding più focalizzati e migliorare la qualità del retrieval.
+    Pagine corte (< 800 char) producono un unico chunk invariato.
 
     Ritorna lista di dict con chiavi: testo, page_start, page_end, section_title.
     """
@@ -300,17 +321,23 @@ def read_pdf_chunks(p: Path) -> list:
     pages = pymupdf4llm.to_markdown(str(p), page_chunks=True)
     result = []
     for page in pages:
-        result.append({
-            "testo": page["text"],
-            "page_start": page["metadata"]["page"],
-            "page_end": page["metadata"]["page"],
-            "section_title": None,
-        })
+        page_text = page["text"].strip()
+        if not page_text:
+            continue
+        page_num = page["metadata"]["page"]
+        for _, sub_text in chunk_text(page_text, size=800, overlap=150):
+            if sub_text.strip():
+                result.append({
+                    "testo": sub_text,
+                    "page_start": page_num,
+                    "page_end": page_num,
+                    "section_title": None,
+                })
     return result
 
 
 def list_files(root: Path):
-    exts = {".txt", ".md", ".csv", ".json", ".pdf"}
+    exts = {".txt", ".md", ".csv", ".json", ".pdf", ".docx"}
     for p in root.rglob("*"):
         if p.is_file() and p.suffix.lower() in exts:
             yield p
@@ -335,64 +362,90 @@ def main():
         print(f"INFO: No supported files found in {in_path}")
         return
 
-    conn = get_conn()
-    conn.autocommit = False
-
     files_read = 0
     docs_new = 0
     docs_skipped = 0
     chunks_inserted = 0
 
+    # Ottieni kb_id in una transazione separata
+    conn = get_conn()
+    conn.autocommit = False
     try:
         with conn.cursor() as cur:
             kb_id = ensure_kb(cur, kb_namespace)
-
-            for fp in files:
-                files_read += 1
-                is_pdf = fp.suffix.lower() == ".pdf"
-
-                if is_pdf:
-                    # Per PDF: hash dal contenuto binario, text non usato
-                    raw_bytes = fp.read_bytes()
-                    content_hash = hashlib.sha256(raw_bytes).hexdigest()
-                    text = ""
-                else:
-                    text = read_text_file(fp)
-                    if not text.strip():
-                        continue
-                    content_hash = sha256_text(text)
-
-                source_path = fp.as_posix()
-                titolo = fp.name
-
-                doc_id, inserted_new = upsert_document(cur, kb_id, source_path, titolo, content_hash)
-                if not inserted_new:
-                    docs_skipped += 1
-                    continue
-
-                docs_new += 1
-                chunks_inserted += insert_chunks(
-                    cur, kb_id, kb_namespace, doc_id, source_path, fp.name, text,
-                    file_path=fp,
-                )
-
         conn.commit()
-        print("OK ingest completed")
-        print(json.dumps({
-            "kb": kb_namespace,
-            "path": str(in_path),
-            "files_found": len(files),
-            "files_read": files_read,
-            "documents_new": docs_new,
-            "documents_skipped_existing": docs_skipped,
-            "chunks_inserted": chunks_inserted
-        }, indent=2))
-
     except Exception:
         conn.rollback()
         raise
     finally:
         conn.close()
+
+    # Ingest file per file — commit separato per evitare OOM su transazioni grandi
+    for fp in files:
+        files_read += 1
+        ext = fp.suffix.lower()
+        is_pdf = ext == ".pdf"
+        is_docx = ext == ".docx"
+
+        if is_pdf:
+            raw_bytes = fp.read_bytes()
+            content_hash = hashlib.sha256(raw_bytes).hexdigest()
+            text = ""
+        elif is_docx:
+            text = read_docx_file(fp)
+            if not text.strip():
+                continue
+            content_hash = sha256_text(text)
+        else:
+            text = read_text_file(fp)
+            if not text.strip():
+                continue
+            content_hash = sha256_text(text)
+
+        source_path = fp.as_posix()
+        titolo = fp.name
+
+        conn = get_conn()
+        conn.autocommit = False
+        try:
+            with conn.cursor() as cur:
+                doc_id, inserted_new = upsert_document(cur, kb_id, source_path, titolo, content_hash)
+                if not inserted_new:
+                    docs_skipped += 1
+                    conn.rollback()
+                    conn.close()
+                    continue
+
+                docs_new += 1
+                n = insert_chunks(
+                    cur, kb_id, kb_namespace, doc_id, source_path, fp.name, text,
+                    file_path=fp,
+                )
+                chunks_inserted += n
+            conn.commit()
+            print(f"  OK {fp.name}: {n} chunks")
+        except Exception as e:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            print(f"  ERR {fp.name}: {e}")
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+    print("OK ingest completed")
+    print(json.dumps({
+        "kb": kb_namespace,
+        "path": str(in_path),
+        "files_found": len(files),
+        "files_read": files_read,
+        "documents_new": docs_new,
+        "documents_skipped_existing": docs_skipped,
+        "chunks_inserted": chunks_inserted
+    }, indent=2))
 
 
 if __name__ == "__main__":

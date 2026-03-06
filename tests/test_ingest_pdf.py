@@ -107,6 +107,29 @@ def test_read_pdf_chunks_multiple_pages(monkeypatch, tmp_path):
 
 
 # ─────────────────────────────────────────────
+# Test 5b: pagina lunga produce più sub-chunk
+# ─────────────────────────────────────────────
+
+def test_read_pdf_chunks_pagina_lunga_produce_sub_chunk(monkeypatch, tmp_path):
+    """Una pagina con testo > 800 char deve produrre più sub-chunk (retrieval focalizzato)."""
+    testo_lungo = "A" * 900  # 900 char > size=800 → almeno 2 chunk
+    fake_pages = [{"text": testo_lungo, "metadata": {"page": 1}}]
+    monkeypatch.setitem(sys.modules, "pymupdf4llm", _make_fake_pymupdf(fake_pages))
+
+    from app.ingest_fs import read_pdf_chunks
+    pdf = tmp_path / "doc.pdf"
+    pdf.write_bytes(b"%PDF-1.4")
+
+    result = read_pdf_chunks(pdf)
+
+    assert len(result) >= 2, "Una pagina di 900 char deve produrre almeno 2 sub-chunk"
+    for chunk in result:
+        assert chunk["page_start"] == 1
+        assert chunk["page_end"] == 1
+        assert len(chunk["testo"]) <= 800
+
+
+# ─────────────────────────────────────────────
 # Test 5: list_files include .pdf, esclude .docx
 # ─────────────────────────────────────────────
 
