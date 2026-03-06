@@ -31,6 +31,7 @@ def fts_search(
             kb_namespace,
             LEFT(testo, 800) AS excerpt,
             metadata->>'source_path' AS source_path,
+            metadata AS doc_metadata,
             ts_rank(testo_tsv, plainto_tsquery('italian', %s)) AS rank
         FROM chunks
         WHERE testo_tsv IS NOT NULL
@@ -50,12 +51,20 @@ def fts_search(
 
     results = []
     for row in rows:
+        raw_meta = row.get("doc_metadata") or {}
+        if isinstance(raw_meta, str):
+            import json as _json
+            try:
+                raw_meta = _json.loads(raw_meta)
+            except Exception:
+                raw_meta = {}
         results.append({
             "id": row["id"],
             "score": float(row["rank"]),
             "kb_namespace": row["kb_namespace"],
             "source_path": row.get("source_path"),
             "excerpt": row["excerpt"],
+            "doc_metadata": raw_meta,
         })
     return results
 

@@ -101,19 +101,15 @@ PROMPT_SISTEMA = (
 def _build_context(chunks: List[Dict[str, Any]]) -> str:
     """Costruisce la stringa contesto dai chunk recuperati.
 
-    Ogni documento è avvolto da separatori INIZIO/FINE espliciti per evitare
-    che l'LLM fonda informazioni di frammenti con target/ambiti diversi.
+    Ogni documento è avvolto da separatori INIZIO/FINE espliciti. Se il chunk
+    ha doc_metadata (da sidecar .meta.json), aggiunge un header TARGET/AMBITI
+    leggibile dall'LLM prima del testo.
 
     Formato per ogni chunk:
       --- INIZIO DOCUMENTO N (fonte: <path>) ---
+      [TIPO: xxx | FONTE: xxx | TARGET: xxx · yyy | AMBITI: xxx · yyy]   ← se disponibile
       <excerpt>
       --- FINE DOCUMENTO N ---
-
-    Args:
-        chunks: Lista di dict con 'excerpt', 'source_path', 'kb_namespace'.
-
-    Returns:
-        Stringa contesto multi-documento pronta per l'LLM.
     """
     if not chunks:
         return ""
@@ -121,8 +117,25 @@ def _build_context(chunks: List[Dict[str, Any]]) -> str:
     for i, chunk in enumerate(chunks, 1):
         excerpt = chunk.get("excerpt", "")
         fonte = chunk.get("source_path") or chunk.get("kb_namespace", "sconosciuta")
+        meta = chunk.get("doc_metadata") or {}
+
+        header_parts = []
+        if meta.get("tipo_documento"):
+            header_parts.append(f"TIPO: {meta['tipo_documento']}")
+        if meta.get("fonte_programma"):
+            header_parts.append(f"FONTE: {meta['fonte_programma']}")
+        if meta.get("targets"):
+            header_parts.append(f"TARGET: {' · '.join(meta['targets'])}")
+        if meta.get("ambiti"):
+            header_parts.append(f"AMBITI: {' · '.join(meta['ambiti'])}")
+
+        meta_header = ""
+        if header_parts:
+            meta_header = "[" + " | ".join(header_parts) + "]\n"
+
         parti.append(
             f"--- INIZIO DOCUMENTO {i} (fonte: {fonte}) ---\n"
+            f"{meta_header}"
             f"{excerpt}\n"
             f"--- FINE DOCUMENTO {i} ---"
         )

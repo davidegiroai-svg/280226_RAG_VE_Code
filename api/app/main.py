@@ -1,8 +1,10 @@
 # RAG VE API - Main application
 import os
 import uuid
+import json
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, UploadFile, File, Query, Depends
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List
 
@@ -11,6 +13,7 @@ from .query import build_query_sql, parse_results, execute_search
 from .embedding import embed_text
 from .llm import synthesize_answer
 from .auth import require_api_key
+from .metadata_extractor import extract_metadata_for_file, save_sidecar_meta
 
 app = FastAPI(
     title="RAG VE API",
@@ -41,6 +44,7 @@ class Source(BaseModel):
     kb_namespace: str
     source_path: Optional[str] = None
     excerpt: str
+    doc_metadata: Optional[dict] = None
 
 class QueryResponse(BaseModel):
     answer: str
@@ -155,6 +159,24 @@ def query_api(request: QueryRequest, _auth=Depends(require_api_key)):
         if answer is None:
             if not sources:
                 answer = "Nessun documento trovato per la query specificata."
+            elif request.synthesize:
+                # LLM chiamato ma non disponibile: messaggio amichevole con nomi file
+                visti: set = set()
+                nomi = []
+                for s in sources:
+                    fname = (s.get("source_path") or "").split("/")[-1] or s.get("kb_namespace", "?")
+                    if fname not in visti:
+                        nomi.append(f"- {fname}")
+                        visti.add(fname)
+                elenco = "\n".join(nomi[:5])
+                n = len(sources)
+                answer = (
+                    "Mi dispiace, il servizio di elaborazione è temporaneamente non disponibile. "
+                    f"Ho trovato {n} estratt{'i' if n != 1 else 'o'} nei seguenti documenti "
+                    "che potrebbero rispondere alla tua domanda:\n\n"
+                    f"{elenco}\n\n"
+                    "Ti invito a consultare le fonti qui sotto per i dettagli."
+                )
             else:
                 answer = "Retrieval-only response."
 
@@ -164,6 +186,100 @@ def query_api(request: QueryRequest, _auth=Depends(require_api_key)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Query execution failed: {str(e)}")
+
+
+@app.post("/api/v1/query/stream")
+def query_stream(request: QueryRequest, _auth=Depends(require_api_key)):
+    """Endpoint SSE: invia fonti + token LLM in streaming.
+    Formato eventi:
+      data: {"type": "sources", "sources": [...]}
+      data: {"type": "token", "content": "..."}
+      data: [DONE]
+    """
+    from .llm import synthesize_stream as _synthesize_stream
+
+    try:
+        if request.search_mode not in VALID_SEARCH_MODES:
+            raise HTTPException(status_code=422, detail="search_mode non valido")
+
+        query_vec = None
+        if request.search_mode != "fts":
+            query_vec, _m, _d = embed_text(request.query)
+
+        with get_db_cursor() as cursor:
+            sources = execute_search(
+                query_text=request.query,
+                cursor=cursor,
+                kb_namespace=request.kb,
+                top_k=request.top_k,
+                search_mode=request.search_mode,
+                query_vec=query_vec,
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Query execution failed: {str(e)}")
+
+    # Serializza sources come lista di dict (compatibile con Source pydantic)
+    sources_data = [
+        {
+            "id": s["id"] if isinstance(s, dict) else s.id,
+            "score": s["score"] if isinstance(s, dict) else s.score,
+            "kb_namespace": s["kb_namespace"] if isinstance(s, dict) else s.kb_namespace,
+            "source_path": s.get("source_path") if isinstance(s, dict) else s.source_path,
+            "excerpt": s["excerpt"] if isinstance(s, dict) else s.excerpt,
+        }
+        for s in sources
+    ]
+
+    llm_model = os.environ.get("OLLAMA_LLM_MODEL", "llama3.2")
+    history_dicts = (
+        [{"role": m.role, "content": m.content} for m in request.history]
+        if request.history else None
+    )
+
+    def event_generator():
+        # Evento 1: fonti (arriva subito, prima che LLM generi)
+        yield f"data: {json.dumps({'type': 'sources', 'sources': sources_data})}\n\n"
+
+        if not sources or not request.synthesize:
+            msg = (
+                "Nessun documento trovato per la query specificata."
+                if not sources
+                else "Retrieval-only response."
+            )
+            yield f"data: {json.dumps({'type': 'token', 'content': msg})}\n\n"
+        else:
+            # Evento 2: segnale "thinking" — il frontend lo mostra come placeholder
+            yield f"data: {json.dumps({'type': 'thinking'})}\n\n"
+
+            token_count = 0
+            for token in _synthesize_stream(request.query, sources, llm_model, history=history_dicts):
+                token_count += 1
+                yield f"data: {json.dumps({'type': 'token', 'content': token})}\n\n"
+
+            # Fallback se LLM non ha risposto (Ollama down / timeout)
+            if token_count == 0:
+                visti: set = set()
+                nomi = []
+                for s in sources:
+                    fname = (s.get("source_path") or "").split("/")[-1] or s.get("kb_namespace", "?")
+                    if fname not in visti:
+                        nomi.append(f"- {fname}")
+                        visti.add(fname)
+                elenco = "\n".join(nomi[:5])
+                n = len(sources)
+                msg = (
+                    "Il servizio di elaborazione è temporaneamente non disponibile. "
+                    f"Ho trovato {n} estratt{'i' if n != 1 else 'o'} nei seguenti documenti:\n\n"
+                    f"{elenco}\n\n"
+                    "Consulta le fonti qui sotto per i dettagli."
+                )
+                yield f"data: {json.dumps({'type': 'token', 'content': msg})}\n\n"
+
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 @app.get("/health/ready")
@@ -334,10 +450,19 @@ def upload_files(
 
     saved_names = []
     saved_sizes = []
+    llm_model = os.environ.get("LLM_MODEL", "llama3.2")
     for filename, content in validated:
-        (kb_dir / filename).write_bytes(content)
+        file_path = kb_dir / filename
+        file_path.write_bytes(content)
         saved_names.append(filename)
         saved_sizes.append(len(content))
+        # Genera sidecar .meta.json via LLM (best-effort, non blocca l'upload)
+        try:
+            text_snippet = content.decode("utf-8", errors="replace")
+            meta = extract_metadata_for_file(file_path, llm_model, text_snippet)
+            save_sidecar_meta(file_path, meta)
+        except Exception:
+            pass  # best-effort: metadata extraction non blocca l'upload
 
     # Genera UUIDs
     upload_id = str(uuid.uuid4())

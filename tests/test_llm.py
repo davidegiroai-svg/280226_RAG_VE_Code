@@ -156,3 +156,34 @@ def test_prompt_sistema_fallback_non_usa_placeholder_parentesi_quadre():
         "Placeholder [AMBITO richiesto] confonde l'LLM con le citazioni [Documento N]"
     assert "[elenca" not in PROMPT_SISTEMA, \
         "Placeholder [elenca ...] confonde l'LLM con le citazioni [Documento N]"
+
+
+def test_build_context_include_header_metadata_se_presenti():
+    """_build_context deve prefissare ogni chunk con TIPO/FONTE/TARGET/AMBITI se doc_metadata presente."""
+    from app.llm import _build_context
+    chunks = [{
+        "excerpt": "Testo del programma.",
+        "source_path": "/data/inbox/programmi/test.pdf",
+        "kb_namespace": "programmi",
+        "doc_metadata": {
+            "tipo_documento": "programma_operativo",
+            "fonte_programma": "PN Inclusione",
+            "targets": ["Minori", "Famiglie"],
+            "ambiti": ["Child guarantee", "Disagio socio-economico"],
+        },
+    }]
+    ctx = _build_context(chunks)
+    assert "TIPO: programma_operativo" in ctx
+    assert "FONTE: PN Inclusione" in ctx
+    assert "TARGET: Minori" in ctx
+    assert "AMBITI: Child guarantee" in ctx
+
+
+def test_build_context_no_header_se_metadata_assente():
+    """_build_context non deve aggiungere header se doc_metadata è assente o vuoto."""
+    from app.llm import _build_context
+    chunks = [{"excerpt": "Testo.", "source_path": "/data/test.txt", "kb_namespace": "demo"}]
+    ctx = _build_context(chunks)
+    assert "TIPO:" not in ctx
+    assert "TARGET:" not in ctx
+    assert "--- INIZIO DOCUMENTO 1" in ctx

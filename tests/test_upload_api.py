@@ -257,3 +257,24 @@ class TestUpload:
                     files={"files": _make_file(f"doc{ext}", b"contenuto")},
                 )
             assert resp.status_code == 200, f"Atteso 200 per {ext}, ricevuto {resp.status_code}"
+
+    def test_upload_genera_meta_json_se_llm_disponibile(self, tmp_path, monkeypatch):
+        """POST /upload deve tentare di generare .meta.json via LLM dopo l'upload."""
+        monkeypatch.setenv("INBOX_ROOT", str(tmp_path))
+        monkeypatch.setenv("EMBEDDING_PROVIDER", "dummy")
+        monkeypatch.setenv("AUTH_ENABLED", "false")
+
+        fake_meta = {"titolo": "Test", "targets": ["Minori"], "ambiti": ["Child guarantee"]}
+        ctx, _ = _mock_cursor()
+
+        with patch("app.main.get_db_cursor", return_value=ctx), \
+             patch("app.main.extract_metadata_for_file", return_value=fake_meta) as mock_extract, \
+             patch("app.main.save_sidecar_meta") as mock_save:
+            resp = client.post(
+                "/api/v1/upload?kb=test_kb",
+                files={"files": ("test.pdf", io.BytesIO(b"%PDF-1.4 test content"), "application/pdf")},
+            )
+
+        assert resp.status_code == 200, f"Upload fallito: {resp.text}"
+        assert mock_extract.called, "extract_metadata_for_file non \u00e8 stato chiamato"
+        assert mock_save.called, "save_sidecar_meta non \u00e8 stato chiamato"

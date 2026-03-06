@@ -71,6 +71,21 @@ def read_text_file(p: Path) -> str:
     return content
 
 
+def read_sidecar_meta(doc_path: Path) -> dict:
+    """Legge il file .meta.json sidecar accanto al documento se esiste.
+
+    Cerca <nome_documento>.meta.json nella stessa directory del file.
+    Ritorna il dict con i metadati, oppure {} se assente o malformato.
+    """
+    meta_path = doc_path.with_suffix(".meta.json")
+    if not meta_path.exists():
+        return {}
+    try:
+        return json.loads(meta_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
 def read_docx_file(p: Path) -> str:
     """Estrae testo da file DOCX: paragrafi + celle tabelle, separati da newline."""
     import docx
@@ -159,6 +174,9 @@ def insert_chunks(
     *,
     file_path: Path = None,
 ) -> int:
+    # Leggi metadati sidecar se disponibili
+    sidecar = read_sidecar_meta(file_path) if file_path is not None else {}
+
     # Branch PDF: usa read_pdf_chunks con page_start/page_end come colonne dedicate
     if file_path is not None and file_path.suffix.lower() == ".pdf":
         page_chunks = read_pdf_chunks(file_path)
@@ -180,6 +198,7 @@ def insert_chunks(
                 "chunk_index": chunk_index,
                 "page_start": pc["page_start"],
                 "page_end": pc["page_end"],
+                **sidecar,
             }
             cur.execute(
                 """
@@ -215,7 +234,7 @@ def insert_chunks(
 
     inserted = 0
     for (chunk_index, chunk), embedding in zip(chunks_data, embeddings):
-        meta = {"source_path": source_path, "file_name": file_name, "chunk_index": chunk_index}
+        meta = {"source_path": source_path, "file_name": file_name, "chunk_index": chunk_index, **sidecar}
         cur.execute(
             """
             INSERT INTO chunks (document_id, kb_id, kb_namespace, chunk_index, testo, metadata, embedding, embedding_model, embedding_dim)
@@ -339,6 +358,9 @@ def read_pdf_chunks(p: Path) -> list:
 def list_files(root: Path):
     exts = {".txt", ".md", ".csv", ".json", ".pdf", ".docx"}
     for p in root.rglob("*"):
+        # Esclude i file sidecar .meta.json che non devono essere ingestiti
+        if p.name.endswith(".meta.json"):
+            continue
         if p.is_file() and p.suffix.lower() in exts:
             yield p
 

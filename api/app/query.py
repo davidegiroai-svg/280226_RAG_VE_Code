@@ -50,9 +50,10 @@ def build_query_sql(
             id::text,
             kb_namespace,
             document_id::text,
-            LEFT(testo, 800) as excerpt,
+            testo as excerpt,
             metadata->>'source_path' as source_path,
             chunk_index,
+            metadata AS doc_metadata,
             embedding <=> %s as distance
         FROM chunks
         WHERE embedding IS NOT NULL
@@ -76,12 +77,21 @@ def parse_results(rows) -> List[Dict[str, Any]]:
     for row in rows:
         distance = float(row["distance"])
         score = max(0.0, 1.0 - distance)
+        raw_meta = row.get("doc_metadata") or {}
+        # psycopg2 RealDictCursor restituisce JSONB come dict Python
+        if isinstance(raw_meta, str):
+            import json as _json
+            try:
+                raw_meta = _json.loads(raw_meta)
+            except Exception:
+                raw_meta = {}
         sources.append({
             "id": row["id"],
             "score": score,
             "kb_namespace": row["kb_namespace"],
             "source_path": row.get("source_path"),
-            "excerpt": row["excerpt"]
+            "excerpt": row["excerpt"],
+            "doc_metadata": raw_meta,
         })
     return sources
 

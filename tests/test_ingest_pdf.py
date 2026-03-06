@@ -210,3 +210,41 @@ def test_insert_chunks_pdf_empty_pages_skipped(monkeypatch, tmp_path):
     )
 
     assert result == 1  # solo la pagina 1 è valida
+
+
+# ─────────────────────────────────────────────
+# Test 8: read_sidecar_meta — letttura .meta.json
+# ─────────────────────────────────────────────
+
+def test_read_sidecar_meta_legge_json_se_esiste(tmp_path):
+    """read_sidecar_meta legge il .meta.json accanto al documento."""
+    from app.ingest_fs import read_sidecar_meta
+    doc = tmp_path / "doc.pdf"
+    doc.write_bytes(b"%PDF-1.4")
+    meta_file = tmp_path / "doc.meta.json"
+    meta_file.write_text('{"titolo": "Test", "targets": ["Minori"]}', encoding="utf-8")
+
+    result = read_sidecar_meta(doc)
+    assert result["titolo"] == "Test"
+    assert result["targets"] == ["Minori"]
+
+
+def test_read_sidecar_meta_ritorna_dict_vuoto_se_assente(tmp_path):
+    """read_sidecar_meta ritorna {} se il .meta.json non esiste."""
+    from app.ingest_fs import read_sidecar_meta
+    doc = tmp_path / "doc.pdf"
+    doc.write_bytes(b"%PDF-1.4")
+
+    result = read_sidecar_meta(doc)
+    assert result == {}
+
+
+def test_read_sidecar_meta_ritorna_dict_vuoto_se_json_malformato(tmp_path):
+    """read_sidecar_meta ritorna {} se il .meta.json è malformato (no crash)."""
+    from app.ingest_fs import read_sidecar_meta
+    doc = tmp_path / "doc.pdf"
+    doc.write_bytes(b"%PDF-1.4")
+    (tmp_path / "doc.meta.json").write_text("{ INVALID JSON }", encoding="utf-8")
+
+    result = read_sidecar_meta(doc)
+    assert result == {}
