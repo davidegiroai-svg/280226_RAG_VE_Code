@@ -140,3 +140,19 @@ def test_prompt_sistema_contiene_fallback_rifiuto():
     p_lower = PROMPT_SISTEMA.lower()
     assert any(kw in p_lower for kw in ["non ho trovato", "altri target", "altri ambiti"]), \
         "PROMPT_SISTEMA deve prevedere un fallback elegante quando i frammenti sono fuori target"
+
+
+def test_prompt_sistema_fallback_non_usa_placeholder_parentesi_quadre():
+    """REGOLA 3 non deve usare [TARGET richiesto] o [AMBITO richiesto] come placeholder.
+
+    I placeholder con [...] confondono l'LLM con la notazione [Documento N] usata
+    per le citazioni inline, causando la copia letterale del template.
+    I placeholder devono usare << >> o essere descrittivi in prosa.
+    """
+    from app.llm import PROMPT_SISTEMA
+    assert "[TARGET richiesto]" not in PROMPT_SISTEMA, \
+        "Placeholder [TARGET richiesto] confonde l'LLM con le citazioni [Documento N]"
+    assert "[AMBITO richiesto]" not in PROMPT_SISTEMA, \
+        "Placeholder [AMBITO richiesto] confonde l'LLM con le citazioni [Documento N]"
+    assert "[elenca" not in PROMPT_SISTEMA, \
+        "Placeholder [elenca ...] confonde l'LLM con le citazioni [Documento N]"
