@@ -141,13 +141,17 @@ Questa appendice formalizza le estensioni emerse e le colloca in una roadmap coe
 - Principio “zero frizione”: non richiede un bottone “re-index”.
 - Gestisce consistenza e conflitti (file sostituito, rename, duplicati).
 
-### B.4 Feature: Answer synthesis (RAG completa)
+### B.4 Feature: Reasoning Answer Synthesis (RAG Avanzato)
 **Descrizione**
-- Aggiungere un livello di generazione che sintetizza i top chunk in una risposta breve, strutturata e non ridondante, con citazioni e fallback.
+- Implementare una logica di generazione che non sia una mera sintesi, ma un'analisi ragionata. L'assistente deve:
+  - Confrontare informazioni tra diversi documenti.
+  - Dedurre risposte a domande complesse (es. "quali interventi per i disabili...") partendo dai dati tecnici.
+  - Supportare la `history` per permettere un'analisi iterativa e approfondimenti (drill-down) senza perdita di contesto.
+- Il tono deve essere quello di un consulente della Pubblica Amministrazione: preciso, esaustivo e basato su evidenze.
 
 **Roadmap**
-- M2: endpoint dedicato (`/api/v1/answer`) o flag su query (`synthesize=true`).
-- M3: miglioramenti grounding (policy anti-hallucination, guardrails).
+- M2: Ottimizzazione del Prompt di Sistema per incoraggiare il ragionamento analitico (Chain of Thought implicito).
+- M3: Gestione di risposte multi-pagina e tabelle comparative generate dinamicamente.
 
 ### B.5 Feature: Output modes (summary/table/checklist/extract)
 **Descrizione**

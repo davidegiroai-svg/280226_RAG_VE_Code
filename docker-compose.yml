@@ -35,7 +35,7 @@ services:
       INBOX_ROOT: "${INBOX_ROOT:-/data/inbox}"
       MAX_UPLOAD_SIZE_MB: "${MAX_UPLOAD_SIZE_MB:-50}"
       OLLAMA_LLM_MODEL: "${OLLAMA_LLM_MODEL:-llama3.2}"
-      LLM_TIMEOUT_S: "${LLM_TIMEOUT_S:-30}"
+      LLM_TIMEOUT_S: "${LLM_TIMEOUT_S:-600}"
       AUTH_ENABLED: "${AUTH_ENABLED:-true}"
     volumes:
       - ./tests:/app/tests:ro

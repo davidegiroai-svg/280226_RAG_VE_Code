@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { searchQuery } from '../api'
+import { searchQueryStream } from '../api'
 import type { UIChatMessage, Source } from '../types'
 import KBSelector from '../components/KBSelector'
 import Spinner from '../components/Spinner'
@@ -78,9 +78,15 @@ function ChatBubble({ msg }: { msg: UIChatMessage }) {
           <p className="text-sm leading-relaxed">{msg.content}</p>
         ) : (
           <>
-            <div className="text-sm leading-relaxed [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_table]:border-collapse [&_th]:border [&_th]:px-2 [&_th]:py-1 [&_td]:border [&_td]:px-2 [&_td]:py-1 [&_p]:mb-2 [&_p:last-child]:mb-0">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-            </div>
+            {msg.thinking && !msg.content ? (
+              <p className="text-sm text-gray-400 italic animate-pulse">
+                Elaborazione in corso…
+              </p>
+            ) : (
+              <div className="overflow-x-auto text-sm leading-relaxed [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:px-2 [&_th]:py-1 [&_td]:border [&_td]:px-2 [&_td]:py-1 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_h1]:text-base [&_h1]:font-bold [&_h1]:mb-2 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-1 [&_blockquote]:border-l-2 [&_blockquote]:border-gray-300 [&_blockquote]:pl-3 [&_blockquote]:italic">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+              </div>
+            )}
             {msg.sources && <SourcesPanel sources={msg.sources} />}
           </>
         )}
@@ -120,25 +126,52 @@ export default function SearchPage() {
     // Prepara history per il backend (solo role+content, senza sources)
     const history = messages.map(m => ({ role: m.role, content: m.content }))
 
-    try {
-      const res = await searchQuery({
-        query: text,
-        kb: kb || undefined,
-        top_k: topK,
-        search_mode: searchMode,
-        synthesize: true,
-        history,
-      })
+    // Aggiunge subito il messaggio assistente vuoto (verrà aggiornato token per token)
+    const assistantIdx = newMessages.length
+    setMessages(prev => [...prev, { role: 'assistant', content: '', sources: [] }])
 
-      const assistantMsg: UIChatMessage = {
-        role: 'assistant',
-        content: res.answer,
-        sources: res.sources,
-      }
-      setMessages(prev => [...prev, assistantMsg])
+    let accumulated = ''
+    try {
+      await searchQueryStream(
+        { query: text, kb: kb || undefined, top_k: topK, search_mode: searchMode, synthesize: true, history },
+        {
+          onSources: (srcs: Source[]) => {
+            setMessages(prev => {
+              const updated = [...prev]
+              updated[assistantIdx] = { ...updated[assistantIdx], sources: srcs }
+              return updated
+            })
+          },
+          onThinking: () => {
+            setMessages(prev => {
+              const updated = [...prev]
+              updated[assistantIdx] = { ...updated[assistantIdx], thinking: true }
+              return updated
+            })
+          },
+          onToken: (token: string) => {
+            accumulated += token
+            setMessages(prev => {
+              const updated = [...prev]
+              updated[assistantIdx] = { ...updated[assistantIdx], content: accumulated, thinking: false }
+              return updated
+            })
+          },
+          onDone: () => {
+            setMessages(prev => {
+              const updated = [...prev]
+              if (updated[assistantIdx]) {
+                updated[assistantIdx] = { ...updated[assistantIdx], thinking: false }
+              }
+              return updated
+            })
+            setLoading(false)
+          },
+          onError: (e: Error) => { setError(e.message); setLoading(false) },
+        }
+      )
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Errore sconosciuto')
-    } finally {
       setLoading(false)
     }
   }

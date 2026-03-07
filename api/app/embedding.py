@@ -77,24 +77,34 @@ def _ollama_embed_batch(cfg: EmbeddingConfig, texts: Sequence[str]) -> List[List
     Prefer /api/embed (batch): {model, input:[...]} -> {embeddings:[[...],...]}
     Fallback /api/embeddings (legacy): {model, prompt} -> {embedding:[...]} per testo
     """
-    # 1) /api/embed
+    # Trunca testi lunghi: nomic-embed-text ha 2048 token, testi italiani ~2000 chars max
+    MAX_CHARS = 2000
+    safe_texts = [t[:MAX_CHARS] if len(t) > MAX_CHARS else t for t in texts]
+
+    # 1) /api/embed con batching (max 5 testi per richiesta per evitare timeout)
     try:
         url = f"{cfg.ollama_base_url}/api/embed"
-        payload = {"model": cfg.model, "input": list(texts)}
-        r = requests.post(url, json=payload, timeout=cfg.timeout_s)
-        r.raise_for_status()
-        data = r.json()
-        vecs = data.get("embeddings")
-        if not isinstance(vecs, list) or not vecs:
-            raise EmbeddingError(f"Ollama /api/embed returned invalid payload (missing embeddings)")
-        return vecs
+        batch_size = 5
+        all_vecs: List[List[float]] = []
+        text_list = safe_texts
+        for i in range(0, len(text_list), batch_size):
+            batch = text_list[i:i + batch_size]
+            payload = {"model": cfg.model, "input": batch}
+            r = requests.post(url, json=payload, timeout=cfg.timeout_s)
+            r.raise_for_status()
+            data = r.json()
+            vecs = data.get("embeddings")
+            if not isinstance(vecs, list) or not vecs:
+                raise EmbeddingError(f"Ollama /api/embed returned invalid payload (missing embeddings)")
+            all_vecs.extend(vecs)
+        return all_vecs
     except Exception as e:
         last_err = e
 
     # 2) fallback legacy /api/embeddings (per-item)
     vecs: List[List[float]] = []
     url = f"{cfg.ollama_base_url}/api/embeddings"
-    for t in texts:
+    for t in safe_texts:
         payload = {"model": cfg.model, "prompt": t}
         r = requests.post(url, json=payload, timeout=cfg.timeout_s)
         r.raise_for_status()

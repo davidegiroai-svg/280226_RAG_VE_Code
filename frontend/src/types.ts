@@ -30,6 +30,7 @@ export interface UIChatMessage {
   role: 'user' | 'assistant'
   content: string
   sources?: Source[]
+  thinking?: boolean  // true mentre l'LLM elabora (prima del primo token)
 }
 
 export interface KbInfo {

@@ -4,7 +4,16 @@
       "Bash(docker compose:*)",
       "Bash(curl:*)",
       "Bash(docker:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(Start-Process:*)",
+      "Bash(do:*)",
+      "Bash(mkdir:*)",
+      "Bash(Get-Content:*)",
+      "Bash(MSYS_NO_PATHCONV=1 docker compose:*)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(python:*)"
     ]
   }
 }

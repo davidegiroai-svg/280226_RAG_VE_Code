@@ -66,12 +66,12 @@ Questa sezione integra la panoramica con i componenti e i flussi necessari per l
 - **Agent framework (opzionale)**: orchestratore + agenti specializzati per routing multi‑modal e tool calling.
 
 ### Flussi chiave (sequenze)
-**1) Query via UI (retrieval + opzionale answer synthesis)**
-1. UI → Orchestrator API: `POST /api/v1/query` (kb, top_k, mode, synthesize)
-2. Orchestrator → Retrieval pipeline: (opz.) rewrite/intent → hybrid retrieve → rerank → top chunks
-3. (opz.) Orchestrator → LLM Generator: sintetizza risposta usando i chunk (grounded)
-4. Orchestrator → Response Router: formatta output e valida schema (se `table`/`extract-json`)
-5. API → UI: risposta + citations strutturate + fonti (expand/collapse)
+**1) Query via UI (Reasoning RAG + conversational synthesis)**
+1. UI → Orchestrator API: `POST /api/v1/query` (kb, top_k, mode, synthesize, `history`)
+2. Orchestrator → Retrieval pipeline: hybrid retrieve (FTS + Vector) → top chunks
+3. Orchestrator → LLM Generator: Esegue il "Reasoning Step". L'IA analizza i chunk, cerca correlazioni e genera una risposta discorsiva esaustiva basandosi anche sulla `history`.
+4. Orchestrator → Response Router: Formatta l'output (Markdown, tabelle) per una lettura ottimale.
+5. API → UI: Messaggio assistente (ragionato) + Citazioni puntuali + Fonti espandibili.
 
 **2) Upload documenti via UI/API**
 1. UI/curl → Upload API: `POST /api/v1/upload?kb=...` (multipart)

@@ -132,14 +132,15 @@ Per ridurre manualità e rischi operativi, l’esperienza desiderata è:
 - Coerenza tra repository sorgente e KB indicizzata.
 - Maggior frequenza di aggiornamento del corpus (più “freshness” → più fiducia).
 
-### B.3 Risposta “pronta” e output differenziati (RAG completa)
-Oltre al retrieval di estratti, il valore percepito aumenta con:
-- **Answer generation**: sintesi sopra i top chunk recuperati.
-- **Output dinamico**: summary / bullets / table / checklist / extract-json, selezionabile da UI o parametro.
+### B.3 Risposta "Reasoning RAG" e Sintesi Esperta (stile NotebookLM)
+Il sistema non deve limitarsi a recuperare estratti, ma deve fungere da assistente intelligente:
+- **Analisi e Ragionamento**: L'assistente analizza il contesto di più documenti per fornire una risposta "ragionata", che connetta punti diversi (es. legare un bando a un programma di finanziamento).
+- **Risposta Discorsiva**: L'output deve essere fluido, istituzionale ma colloquiale, evitando lo stile "copia-incolla" e preferendo una spiegazione logicamente strutturata.
+- **Drill-down Cognitivo**: Supporto alla conversazione per esplorare dettagli citati nella risposta precedente, con l'IA capace di mantenere il filo del discorso specialistico.
 
 **Rischi & mitigazioni (business):**
-- Rischio hallucination → mitigare con grounding, citazioni e fallback a “solo estratti”.
-- Requisito di trasparenza → citazioni “serie” (titolo, pagina, sezione) dove possibile.
+- Rischio di eccessiva creatività → Mitigazione: Grounding rigoroso e obbligo di citazione per ogni affermazione chiave.
+- Precisione delle fonti → Mitigazione: Citazione dinamica [Fonte X] integrata nel testo discorsivo.
 
 ### B.4 Auditabilità, security & compliance (Enterprise RAG)
 Per contesti PA/enterprise sono necessari:

@@ -1,5 +1,55 @@
 # Checkpoint Status
 
+**Checkpoint updated:** 2026-03-06 by FR-METADATA-SIDECAR
+
+## TASK FR-METADATA-SIDECAR — Metadata sidecar system + metadatazione documenti
+**Status:** DONE
+**Timestamp:** 2026-03-06
+**File modificati:**
+- `api/app/ingest_fs.py` — `read_sidecar_meta()` + inject in `insert_chunks()` + esclusione `.meta.json` da `list_files()`
+- `api/app/query.py` — `build_query_sql()` + `parse_results()` con `doc_metadata`
+- `api/app/hybrid.py` — `fts_search()` con `doc_metadata`
+- `api/app/llm.py` — `_build_context()` con header TARGET/AMBITI
+- `api/app/main.py` — `Source.doc_metadata`, upload integration con `extract_metadata_for_file` + `save_sidecar_meta`
+- `api/app/metadata_extractor.py` (NUOVO) — LLM extraction + save_sidecar_meta
+- `tests/test_metadata_extractor.py` (NUOVO) — 3 test TDD
+- `tests/test_ingest_pdf.py` — 3 nuovi test (test_read_sidecar_meta_*)
+- `tests/test_query.py` — 2 nuovi test (doc_metadata)
+- `tests/test_llm.py` — 2 nuovi test (build_context metadata header)
+- `tests/test_upload_api.py` — 1 nuovo test (test_upload_genera_meta_json_se_llm_disponibile)
+- `data/inbox/programmi/*.meta.json` (10 file)
+- `data/inbox/bandi/*.meta.json` (40 file)
+- `data/inbox/progetti/*.meta.json` (15 file)
+
+**Implementato:**
+- Sidecar `.meta.json` per tutti i documenti esistenti (programmi/bandi/progetti)
+- Pipeline ingest legge sidecar e injetta targets/ambiti/tipo nel JSONB `chunks.metadata`
+- `list_files()` esclude `.meta.json` per evitare ingest accidentale dei file sidecar
+- Query pipeline propaga `doc_metadata` fino a `_build_context()` che aggiunge header TARGET/AMBITI
+- Nuovi upload generano `.meta.json` automaticamente via LLM (best-effort, non blocca upload)
+- `metadata_extractor.py`: estrazione strutturata con METADATA_EXTRACTION_PROMPT + tassonomia obbligatoria
+
+**Conteggio test:**
+- Prima: 128 test
+- Dopo: **141 test** (+13 nuovi)
+
+**Fix extra:** `list_files()` esclude `.meta.json` per evitare che i file sidecar vengano
+trattati come documenti JSON da ingestire.
+
+**DB verificato:**
+```sql
+SELECT kb_namespace, metadata->>'titolo', metadata->>'targets', metadata->>'ambiti'
+FROM chunks WHERE metadata->>'targets' IS NOT NULL LIMIT 5;
+-- Risultati con targets/ambiti popolati da .meta.json
+```
+
+**Stato KB dopo re-ingest:**
+- programmi: 10 docs, 5359 chunks (tutti con sidecar metadata)
+- bandi: 35 docs, 2184 chunks (35/38 con sidecar, 3 falliti silenziosamente)
+- progetti: 13 docs, 38 chunks (tutti con sidecar metadata)
+
+---
+
 **Checkpoint updated:** 2026-03-06 by M3_FR7_FR8_WatcherStability_ReasoningRAG
 
 ## TASK M3-FR7 — Watcher Stability (on_modified + namespace validation + DB health check)
@@ -16,6 +66,35 @@
 ### Test aggiunti:
 - `TestInboxHandlerOnModified` (3 test): on_modified rilancia ingest, ignora directory, ignora sub-dir
 - `TestWatcherMain` (2 test): warning DB offline, info DB online
+
+---
+
+## TASK M3-FR8b — Anti-Allucinazione Tabellare + Tassonomia Obbligatoria
+**Status:** DONE
+**Timestamp:** 2026-03-06
+
+**File modificati in questa sessione:**
+- `api/app/llm.py` — PROMPT_SISTEMA v3 + `_build_context()` v2 con delimitatori INIZIO/FINE
+- `tests/test_llm.py` — 2 test aggiornati + 6 nuovi test (13 totali nel file)
+
+**Cosa è stato implementato:**
+`PROMPT_SISTEMA` è stato riscritto in versione v3 con tassonomia hardcoded dei TARGET (Minori, Anziani, Famiglie, Migranti, ETS...) e AMBITI (Disabilità, Occupabilità, Child guarantee, Grave emarginazione...), regola di esclusione esplicita per frammenti fuori target (`IGNORA COMPLETAMENTE`), fallback elegante quando nessun documento è pertinente (`non ho trovato / altri target o altri ambiti`), e divieto di dumping tabellare (`È VIETATO il copia-incolla pedissequo`). `_build_context()` produce ora delimitatori `--- INIZIO DOCUMENTO N / FINE DOCUMENTO N ---` per prevenire la fusione cross-documento da parte dell'LLM.
+
+**Conteggio test:**
+- Prima: 122 test
+- Dopo: **128 test** (+6 nuovi)
+
+**Comando di verifica:**
+```powershell
+docker compose exec api pytest tests/test_llm.py -v
+docker compose exec api pytest tests/ -q --tb=no 2>&1 | tail -3
+```
+
+**Output atteso:**
+```
+13 passed in 0.25s
+128 passed, 1 warning in 2.48s
+```
 
 ---
 

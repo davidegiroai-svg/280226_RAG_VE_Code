@@ -105,13 +105,13 @@ Fine SRS
 
 This addendum captures newly agreed requirements and makes them testable. It is implementation-agnostic, but defines interfaces and expected behaviors.
 
-### FR-5: Frontend Web UI (minimal)
-- Provide a web UI that supports:
-  - KB / namespace selection
-  - query input, `top_k`
-  - (roadmap) output mode selector
-  - results list with sources, each source expandable/collapsible
-  - optional “Documents” page with upload and indexing status
+### FR-5: Frontend Web UI (Conversational RAG)
+- Provide a web UI that acts as an advanced conversational assistant (NotebookLM-style):
+  - KB / namespace selection.
+  - Chat interface supporting continuous message exchange and follow-up queries.
+  - LLM answers formatted with advanced Markdown (tables, lists).
+  - Explicit rendering of citations and context sources dynamically expandable below each AI message.
+  - optional “Documents” page with upload and indexing status.
 - UI must handle and display errors: empty query, KB not selected, API unavailable, timeout.
 
 ### FR-6: Upload API (UI/API)
@@ -135,10 +135,10 @@ This addendum captures newly agreed requirements and makes them testable. It is 
   - Renames must not create duplicate docs if the content is identical.
   - If a file changes, old chunks must be replaced (versioned) deterministically.
 
-### FR-8: Answer generation (“Full RAG”)
-- Query flow may optionally synthesize an answer using an LLM:
-  - Option A: `POST /api/v1/answer`
-  - Option B: `POST /api/v1/query` with flag `synthesize=true`
+### FR-8: Answer generation (“Conversational Full RAG”)
+- Query flow may optionally synthesize an answer using an LLM in a multi-turn conversation:
+  - Option A: `POST /api/v1/answer` (including `history`)
+  - Option B: `POST /api/v1/query` with flag `synthesize=true` and an optional `history` array of `{role, content}`.
 - The synthesized response must:
   - be grounded in retrieved chunks
   - reduce redundancy and follow a consistent structure
