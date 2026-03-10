@@ -21,7 +21,7 @@ Caratteristiche principali
 - Frontend web minimale per query (KB/namespace, top_k, fonti) e gestione documenti (upload/stato).
 - Upload documenti via UI/API con salvataggio in inbox per KB.
 - Indicizzazione automatica (watcher/polling) e delete propagation (coerenza sorgente↔KB).
-- Answer synthesis (RAG completa) e output modes (summary/table/checklist/extract-json).
+- Answer synthesis (RAG completa) e output modes (summary/table/checklist - PIANIFICATI).
 - Citazioni pagina-livello per PDF (titolo/pagina/sezione).
 - Observability (metriche/log/tracing) ed Evaluation harness (Precision@K, MRR, regressioni).
 - Retrieval upgrades (rewrite, hybrid search, reranker, caching).
@@ -73,9 +73,9 @@ Data: 2026-02-26
 - Audit e tracciamento: log delle query e delle fonti consultate per verifica e compliance.
 
 6. Priorità (MVP)
-- Alta: ingest automatico da cartelle locali/OneDrive/SharePoint.
-- Media: supporto multi-modello (adapter per provider locali e cloud), testing A/B qualità risposte.
-- Bassa: integrazioni avanzate (n8n), dashboard analitiche complesse.  
+- Alta: ingest automatico da cartelle locali, streaming SSE.
+- Media: supporto multi-modello, testing A/B qualità risposte.
+- Bassa: connettori cloud (SharePoint/S3), output modes avanzati.  
 (Nota: la versione pilota è pensata a zero budget e si concentra su sorgenti locali e OneDrive/SharePoint; supporto a S3 e crawling web è previsto solo nelle fasi successive del prodotto generico.)
 
 7. Metriche di successo

@@ -704,3 +704,20 @@ data: {"type": "token", "content": "..."}
 ... (molti token)
 data: [DONE]
 ```
+
+---
+
+## TASK M3_FR8_RAG_REASONING_FIX  Refactoring Tassonomico e Anti-Hallucination
+**Status:** DONE
+**Timestamp:** 2026-03-07T09:44:06
+**Milestone:** M3/M4  Reasoning RAG robusto
+**Changes:**
+- `api/app/llm.py`: PROMPT_SISTEMA strutturato con TARGET e AMBITI obbligatori (FR-8).
+- `api/app/llm.py`: Aggiunta direttiva anti-dumping per evitare copia/incolla formattato di tabelle FESR inutili.
+- `frontend/src/pages/SearchPage.tsx`: Fix UI stream token parsing.
+- Test regression suite aggiornata (129 test totali, 0 fail).
+
+**Verification:**
+\\\ash
+docker compose exec api pytest tests/ -v
+\\\`n

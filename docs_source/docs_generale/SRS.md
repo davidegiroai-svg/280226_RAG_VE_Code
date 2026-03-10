@@ -161,10 +161,10 @@ This addendum captures newly agreed requirements and makes them testable. It is 
   - `{doc_id, doc_title, page_start, page_end, section_title?, excerpt, source_uri}`
 
 ### FR-11: Security & access control
-- Authentication is required for sensitive endpoints (admin actions, uploads, logs).
+- Authentication is required via X-API-Key header (SHA-256 hashed in DB).
 - Authorization model:
-  - RBAC roles (at least `admin`, `user`)
-  - optional ACL per KB and per document
+  - API Key valid/active check.
+  - No RBAC/ACL implemented in the current version.
 - Audit log:
   - store who requested what (user_id), when, target KB(s), and request_id.
 - Retention and anonymization policies must be configurable.
@@ -172,7 +172,8 @@ This addendum captures newly agreed requirements and makes them testable. It is 
 ### FR-12: Observability interfaces
 - Provide:
   - `GET /health`
-  - `GET /metrics` (Prometheus-compatible or equivalent)
+  - `GET /health/ready`
+  - `GET /metrics` (NON IMPLEMENTATO)
 - Structured logs MUST include: timestamp, level, request_id, endpoint, latency_ms, error_code (when applicable).
 
 ### FR-13: Evaluation harness (offline)

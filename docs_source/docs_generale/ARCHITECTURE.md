@@ -59,7 +59,7 @@ Questa sezione integra la panoramica con i componenti e i flussi necessari per l
 - **LLM Generator**: componente per answer synthesis (RAG completa) sopra al retrieval; usa prompt orchestration e policy di grounding.
 - **Response Router / Templates**: layer che seleziona template e schema di output (`summary`, `table`, `checklist`, `extract-json`) e valida JSON quando richiesto.
 - **PDF Page Parser**: pipeline di parsing che preserva metadata pagina/sezione per citazioni “serie”.
-- **Auth & Policy Engine**: middleware per autenticazione, RBAC/ACL e audit logging.
+- **Auth Middleware**: Autenticazione tramite Header `X-API-Key` con validazione hash su DB.
 - **Observability stack**: logging strutturato, metriche e tracing con `request_id`.
 - **Evaluation harness (offline)**: pipeline separata per eseguire benchmark e regressioni su retrieval/RAG.
 - **Connector services (roadmap)**: moduli con scheduler/queue per ingest e sync incrementale da SharePoint/S3/Drive/SAP/Salesforce.

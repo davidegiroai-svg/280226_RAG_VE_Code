@@ -1,4 +1,9 @@
-\# CLAUDE.md — RAG multi-KB · Comune di Venezia
+\# Project Rules & Rules (CLAUDE.md)
+
+> [!NOTE]
+> **Tipo Documento:** OPERATIVE SOURCE OF TRUTH
+> **Stato:** Attivo
+> **Finalità:** Punto di ingresso per sessioni Claude Code e regole di sviluppo.
 
 
 
@@ -14,9 +19,8 @@ Percorso Windows: C:\\Users\\D.Giro\\280226\_RAG\_VE\_Code
 
 \## Stato milestone
 
-\- M1 DONE (2026-03-03): DB schema, API /health + /query, embedding Ollama+dummy, ingest worker TXT/MD/CSV/JSON
-
-\- M2 TODO: PDF, upload API, LLM synthesis, watcher, hybrid search, auth
+\- M3 DONE (2026-03-10): UI Completa, Streaming SSE, Ingest worker, Watcher, API Key Auth.
+\- M4 TODO: Stabilization & Release Hardening (Bootstrap, Repo cleanup, Logging).
 
 \- Dettaglio checkpoint: \_cc\_status/checkpoint\_status.md
 
@@ -112,17 +116,10 @@ docker compose down -v \&\& docker compose up -d
 
 
 
-\## Roadmap M2 (ordine priorità)
-
-1\. PDF: pymupdf4llm + branch ingest\_fs.py con page\_chunks=True
-
-2\. Upload API: POST /api/v1/upload?kb=<ns> salva /data/inbox/<kb>/ + job\_id
-
-3\. LLM synthesis: api/app/llm.py + synthesize=true in query
-
-4\. Watcher: watchdog.PollingObserver + delete propagation
-
-5\. Hybrid search: tsvector + BM25 + RRF k=60
+\## Roadmap M4 (Hardening)
+1\. Bootstrap Consolidation: unico script init/migration.
+2\. Repo Hygiene: .env cleanup, removing sensitive artifacts.
+3\. Logic alignment: extension of DOCX to all layers.
 
 
 ## Strumenti installati

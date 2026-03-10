@@ -87,9 +87,8 @@ Richieste operative aggiuntive (security/hand‑off)
 - Adozione: numero di utenti attivi mensili
 
 8. Roadmap di alto livello e milestone commerciali
-- M0 (0–30 giorni): bonifica segreti, definizione schema DB e docker-compose spec, POC ingest.
-- M1 (30–90 giorni): MVP deployabile su staging (ingest automatico, retrieval, admin UI minimale).
-- M2 (90–180 giorni): ottimizzazione multi-model, test di resilienza, handoff cliente e training.
+- M3 (Completata): Implementazione UI Completa, Streaming SSE, Ingest worker (PDF/DOCX), Watcher, API Key Auth.
+- M4 (In corso): Stabilizzazione & Release Hardening (consolidamento bootstrap, cleanup repo).
 
 9. Rischi business
 - Rischio di mancata adozione → mitigare con formazione e POC con utenti reali.
