@@ -1,6 +1,7 @@
 _cc_status/**
 **/.env
 **/.env.*
+!.env.example
 **/secrets/**
 __pycache__/
 *.log

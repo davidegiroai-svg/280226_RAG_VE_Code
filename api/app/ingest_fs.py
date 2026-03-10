@@ -276,7 +276,7 @@ def ingest_single_file(file_path: Path, kb_namespace: str) -> dict:
         RuntimeError: se l'ingest fallisce.
     """
     ext = file_path.suffix.lower()
-    supported = {".txt", ".md", ".csv", ".json", ".pdf"}
+    supported = {".txt", ".md", ".csv", ".json", ".pdf", ".docx"}
     if ext not in supported:
         return {"status": "skipped", "reason": "estensione non supportata"}
 
@@ -288,10 +288,17 @@ def ingest_single_file(file_path: Path, kb_namespace: str) -> dict:
             kb_id = ensure_kb(cur, kb_namespace)
 
             is_pdf = ext == ".pdf"
+            is_docx = ext == ".docx"
             if is_pdf:
                 raw_bytes = file_path.read_bytes()
                 content_hash = hashlib.sha256(raw_bytes).hexdigest()
                 text = ""
+            elif is_docx:
+                text = read_docx_file(file_path)
+                if not text.strip():
+                    conn.rollback()
+                    return {"status": "skipped", "reason": "file vuoto"}
+                content_hash = sha256_text(text)
             else:
                 text = read_text_file(file_path)
                 if not text.strip():

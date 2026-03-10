@@ -17,7 +17,7 @@ from watchdog.observers.polling import PollingObserver
 from app.ingest_fs import get_conn, ingest_single_file
 
 # Estensioni supportate per l'ingest automatico
-SUPPORTED_EXTENSIONS = {".txt", ".md", ".csv", ".json", ".pdf"}
+SUPPORTED_EXTENSIONS = {".txt", ".md", ".csv", ".json", ".pdf", ".docx"}
 
 logger = logging.getLogger(__name__)
 

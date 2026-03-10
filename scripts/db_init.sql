@@ -97,3 +97,42 @@ CREATE TABLE IF NOT EXISTS upload_log (
     file_sizes_bytes bigint[] NOT NULL,
     uploaded_at timestamptz DEFAULT now()
 );
+
+-- Tabella api_keys (auth M3 — hash SHA-256, mai salvare la key raw)
+CREATE TABLE IF NOT EXISTS api_keys (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    key_hash    VARCHAR(128) NOT NULL UNIQUE,
+    name        VARCHAR(100) NOT NULL,
+    created_at  TIMESTAMPTZ DEFAULT NOW(),
+    expires_at  TIMESTAMPTZ NULL,
+    revoked_at  TIMESTAMPTZ NULL,
+    is_active   BOOLEAN DEFAULT TRUE
+);
+
+CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
+CREATE INDEX IF NOT EXISTS idx_api_keys_active ON api_keys(is_active) WHERE is_active = TRUE;
+
+-- Hybrid search: colonna tsvector precalcolata + indice GIN + trigger (M3)
+ALTER TABLE chunks ADD COLUMN IF NOT EXISTS testo_tsv TSVECTOR;
+
+-- Popola per chunk gia' esistenti (no-op su fresh install)
+UPDATE chunks
+SET testo_tsv = to_tsvector('italian', COALESCE(testo, ''))
+WHERE testo_tsv IS NULL AND testo IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_chunks_testo_tsv ON chunks USING GIN(testo_tsv);
+
+CREATE OR REPLACE FUNCTION chunks_testo_tsv_update()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.testo_tsv := to_tsvector('italian', COALESCE(NEW.testo, ''));
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trig_chunks_testo_tsv ON chunks;
+
+CREATE TRIGGER trig_chunks_testo_tsv
+BEFORE INSERT OR UPDATE OF testo ON chunks
+FOR EACH ROW
+EXECUTE FUNCTION chunks_testo_tsv_update();

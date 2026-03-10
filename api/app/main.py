@@ -54,7 +54,7 @@ class HealthResponse(BaseModel):
     status: str
     database: str
 
-ALLOWED_EXTENSIONS = {".pdf", ".txt", ".md", ".csv", ".json"}
+ALLOWED_EXTENSIONS = {".pdf", ".txt", ".md", ".csv", ".json", ".docx"}
 
 
 class HealthReadyResponse(BaseModel):
