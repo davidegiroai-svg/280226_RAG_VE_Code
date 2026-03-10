@@ -13,20 +13,22 @@ RAG Docker-first per il Comune di Venezia: interrogazione documenti (programmi, 
 
 Stack: FastAPI + PostgreSQL 16 + pgvector + Ollama (nomic-embed-text, 768d).
 
-Percorso Windows: C:\\Users\\D.Giro\\280226\_RAG\_VE\_Code
+Percorso Windows: C:\Users\D.Giro\280226_RAG_VE_Code
 
 
 
-\## Stato milestone
+## Stato milestone
 
-\- M3 DONE (2026-03-10): UI Completa, Streaming SSE, Ingest worker, Watcher, API Key Auth.
-\- M4 TODO: Stabilization & Release Hardening (Bootstrap, Repo cleanup, Logging).
+- M3 DONE (2026-03-10): UI Completa, Streaming SSE, Ingest worker, Watcher, API Key Auth.
+- M4 DONE (2026-03-10): Stabilization & Release Hardening (Bootstrap, Repo cleanup, Smoke Test, DOCX end-to-end).
+- M5 DONE (2026-03-10): Observability & Enterprise Expansion (Query Logging, /metrics, DOCX Testing, /health/ready hardening).
+- M6 TODO: TBD.
 
-\- Dettaglio checkpoint: \_cc\_status/checkpoint\_status.md
+- Dettaglio checkpoint: _cc_status/checkpoint_status.md
 
 
 
-\## Struttura reale del progetto
+## Struttura reale del progetto
 
 ```
 
@@ -66,13 +68,15 @@ Invoke-RestMethod -Uri 'http://localhost:8000/health'
 
 docker compose logs -f api
 
-docker compose down -v \&\& docker compose up -d
+docker compose down -v && docker compose up -d
+
+.\scripts\smoke_test.ps1
 
 ```
 
 
 
-\## Regole non derogabili
+## Regole non derogabili
 
 1\. Docker-first: mai python/pip direttamente su Windows
 

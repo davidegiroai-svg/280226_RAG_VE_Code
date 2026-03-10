@@ -2,7 +2,10 @@
 import os
 import uuid
 import json
+import time
+import logging
 from pathlib import Path
+
 from fastapi import FastAPI, HTTPException, UploadFile, File, Query, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -15,11 +18,35 @@ from .llm import synthesize_answer
 from .auth import require_api_key
 from .metadata_extractor import extract_metadata_for_file, save_sidecar_meta
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI(
     title="RAG VE API",
     description="API for RAG multi-KB system",
     version="1.0.0"
 )
+
+
+def _write_query_log(query_text: str, sources: list, model_used: str, response_time_ms: int) -> None:
+    """Scrive una riga in query_log. Best-effort: non propaga eccezioni."""
+    try:
+        chunks_json = json.dumps([
+            {
+                "id": s["id"] if isinstance(s, dict) else s.id,
+                "score": s["score"] if isinstance(s, dict) else s.score,
+            }
+            for s in (sources or [])
+        ])
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(
+                """
+                INSERT INTO query_log (query_text, retrieved_chunks, model_used, response_time_ms)
+                VALUES (%s, %s::jsonb, %s, %s)
+                """,
+                (query_text, chunks_json, model_used, response_time_ms),
+            )
+    except Exception as e:
+        logger.warning("query_log write failed: %s", e)
 
 # Request/Response models
 VALID_SEARCH_MODES = {"vector", "fts", "hybrid"}
@@ -61,6 +88,7 @@ class HealthReadyResponse(BaseModel):
     status: str
     database: str
     vector: str
+    schema: str
 
 
 class KbInfo(BaseModel):
@@ -93,6 +121,14 @@ class DocumentInfo(BaseModel):
 
 class DocumentsResponse(BaseModel):
     documents: List[DocumentInfo]
+
+
+class MetricsResponse(BaseModel):
+    query_count: int
+    avg_latency_ms: int
+    upload_count: int
+    doc_count: int
+    chunk_count: int
 
 
 @app.get("/health")
@@ -129,6 +165,9 @@ def query_api(request: QueryRequest, _auth=Depends(require_api_key)):
                 status_code=422,
                 detail=f"search_mode non valido. Valori accettati: {', '.join(sorted(VALID_SEARCH_MODES))}"
             )
+
+        # Timing: misurato da qui fino a prima del return (embedding + retrieval + sintesi)
+        t0 = time.perf_counter()
 
         # Calcola embedding (non serve per search_mode="fts")
         query_vec = None
@@ -180,6 +219,14 @@ def query_api(request: QueryRequest, _auth=Depends(require_api_key)):
             else:
                 answer = "Retrieval-only response."
 
+        response_time_ms = int((time.perf_counter() - t0) * 1000)
+        model_used = (
+            os.environ.get("OLLAMA_LLM_MODEL", "llama3.2")
+            if request.synthesize
+            else os.environ.get("EMBEDDING_MODEL", "nomic-embed-text")
+        )
+        _write_query_log(request.query, sources, model_used, response_time_ms)
+
         return QueryResponse(answer=answer, sources=sources)
 
     except HTTPException:
@@ -202,6 +249,9 @@ def query_stream(request: QueryRequest, _auth=Depends(require_api_key)):
         if request.search_mode not in VALID_SEARCH_MODES:
             raise HTTPException(status_code=422, detail="search_mode non valido")
 
+        # Timing: solo retrieval (embedding + ricerca) — lo stream LLM è non-deterministico
+        t0 = time.perf_counter()
+
         query_vec = None
         if request.search_mode != "fts":
             query_vec, _m, _d = embed_text(request.query)
@@ -215,10 +265,18 @@ def query_stream(request: QueryRequest, _auth=Depends(require_api_key)):
                 search_mode=request.search_mode,
                 query_vec=query_vec,
             )
+        retrieval_ms = int((time.perf_counter() - t0) * 1000)
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Query execution failed: {str(e)}")
+
+    stream_model_used = (
+        os.environ.get("OLLAMA_LLM_MODEL", "llama3.2")
+        if request.synthesize
+        else "retrieval-only"
+    )
+    _write_query_log(request.query, sources, stream_model_used, retrieval_ms)
 
     # Serializza sources come lista di dict (compatibile con Source pydantic)
     sources_data = [
@@ -284,17 +342,31 @@ def query_stream(request: QueryRequest, _auth=Depends(require_api_key)):
 
 @app.get("/health/ready")
 def health_ready():
-    """Verifica DB connesso + estensione pgvector presente."""
+    """Verifica DB connesso + estensione pgvector + tabelle core dello schema."""
     try:
         with get_db_cursor() as cursor:
+            # Check 1: estensione pgvector
             cursor.execute("SELECT 1 FROM pg_extension WHERE extname = 'vector'")
-            row = cursor.fetchone()
-            if row is None:
+            if cursor.fetchone() is None:
                 raise HTTPException(
                     status_code=503,
                     detail="Estensione vector non trovata nel database."
                 )
-        return HealthReadyResponse(status="ready", database="connected", vector="ok")
+            # Check 2: tabelle core dello schema (knowledge_base, documents, chunks)
+            cursor.execute(
+                """
+                SELECT COUNT(*) FROM information_schema.tables
+                WHERE table_schema = 'public'
+                  AND table_name IN ('knowledge_base', 'documents', 'chunks')
+                """
+            )
+            table_count = cursor.fetchone()["count"]
+            if table_count < 3:
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Schema DB incompleto: attese 3 tabelle core, trovate {table_count}."
+                )
+        return HealthReadyResponse(status="ready", database="connected", vector="ok", schema="ok")
     except HTTPException:
         raise
     except Exception as e:
@@ -488,3 +560,35 @@ def upload_files(
         kb=kb,
         files=saved_names,
     )
+
+
+@app.get("/metrics")
+def get_metrics(_auth=Depends(require_api_key)):
+    """Metriche operative essenziali. Lettura da tabelle esistenti, nessuna dipendenza esterna."""
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    (SELECT COUNT(*) FROM query_log)::int                                                   AS query_count,
+                    COALESCE((SELECT ROUND(AVG(response_time_ms))::int FROM query_log), 0)                  AS avg_latency_ms,
+                    (SELECT COUNT(*) FROM upload_log)::int                                                  AS upload_count,
+                    (SELECT COUNT(*) FROM documents WHERE COALESCE(is_deleted, FALSE) = FALSE)::int         AS doc_count,
+                    (SELECT COUNT(*) FROM chunks)::int                                                      AS chunk_count
+                """
+            )
+            row = cursor.fetchone()
+        return MetricsResponse(
+            query_count=row["query_count"],
+            avg_latency_ms=row["avg_latency_ms"],
+            upload_count=row["upload_count"],
+            doc_count=row["doc_count"],
+            chunk_count=row["chunk_count"],
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Errore interno durante il recupero delle metriche: {str(e)}"
+        )
