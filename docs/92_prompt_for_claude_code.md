@@ -1,4 +1,9 @@
-Project root: C:/Users/D.Giro/280226_RAG_VE_Code
+# [DEPRECATED] Claude Code Prompt Snapshot
+
+> [!CAUTION]
+> **DOCUMENTO STORICO / NON USARE COME SOURCE OF TRUTH OPERATIVA**
+> Le istruzioni e gli stati descritti in questo file sono obsoleti.
+
 
 Summary (what exists):
 - Repo initialized (.git/.gitignore)

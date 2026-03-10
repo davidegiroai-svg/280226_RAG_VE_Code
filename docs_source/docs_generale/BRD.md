@@ -1,30 +1,34 @@
-Documento dei Requisiti di Business (BRD)
+# Business Requirements Document (BRD) - Target State
 
-Scopo
-Questo BRD documenta la giustificazione di business, la proposta di valore, gli stakeholder e i requisiti di alto livello per il prodotto RAG multi‑KB descritto nel PRD.
+> [!NOTE]
+> **Tipo Documento:** TARGET STATE / TO-BE VISION
+> **Stato:** Visione di Prodotto a Regime
+> **Finalità:** Definire il valore di business complessivo e il perimetro del prodotto finale.
+> **Ambito Temporale:** Progetto complessivo (Post-M4).
+> 
+> **ATTENZIONE:** Questo documento descrive lo stato target del progetto e non deve essere interpretato come conferma che tutte le capacità qui indicate (es. connettori cloud, RBAC enterprise) siano già implementate. Per lo stato reale consultare `.planning/STATE.md`.
 
-Obiettivi di business
-- Ridurre il tempo per reperire informazioni rilevanti all'interno di documenti e KB aziendali.
-- Migliorare la qualità decisionale fornendo risposte fondate e citate.
-- Offrire una soluzione portabile e a basso costo, eseguibile on‑premise o in cloud.
+## 1. Stato Implementato Attuale (Short-Term: M1-M3)
+- Sistema RAG funzionante con core pipeline Docker-first.
+- Ingest: Filesystem locale (PDF, TXT, MD, CSV, JSON, DOCX).
+- Search: Vector, FTS e Hybrid Search (RRF).
+- UI: Frontend React/Vite completo.
+- Security: Autenticazione via API Key (X-API-Key Header).
+- AI: Integrazione Ollama per Embedding e LLM Synthesis (Streaming SSE).
 
-Clienti target e stakeholder
-- Pubblica amministrazione e team locali che necessitano accesso consolidato a documenti di gare, finanziamenti e programmi.
-- ONG e imprese di medie dimensioni con repository documentali distribuiti.
-- Stakeholder interni: Product Manager, Lead Engineering, Responsabile Sicurezza, Operations.
+## 2. Gap Analysis vs Target Vision
+- **Conformità Enterprise:** Attualmente manca RBAC/ACL granulare (implementata solo API Key).
+- **Integrazioni Cloud:** I connettori SharePoint/OneDrive sono in roadmap (target BR-1).
+- **Analisi Avanzata:** Reportistica costi e query logging avanzato sono target M5+.
 
-Proposta di valore
-- Risposte più rapide con provenienza riducono il costo di ricerca.
-- Deploy riproducibile senza lock‑in riduce costi di fornitore e migliora il controllo dei dati.
+## 3. Requisiti di Business Principali (Target)
+- BR‑1: [ROADMAP] Il sistema deve indicizzare e cercare documenti da almeno tre tipi di sorgente (filesystem, cloud drive, pagine web).
+- BR‑2: [FUTURE] Il sistema deve fornire report di utilizzo e stime di costo per query modelli cloud.
+- BR‑3: [DONE] Il sistema deve esporre una UI web (admin + query).
+- BR‑4: [DONE] Il sistema deve supportare caricamento documenti via UI/API.
+- BR‑5: [DONE] Il sistema deve supportare indicizzazione automatica e propagazione delle cancellazioni (Watcher).
+- BR‑6: [PARTIAL] Il sistema deve supportare auditabilità e compliance (API Key attiva, RBAC target).
 
-Requisiti di business principali
-- BR‑1: Il sistema deve indicizzare e cercare documenti da almeno tre tipi di sorgente (filesystem, cloud drive, pagine web) al lancio.  
-  * Per il pilot di Venezia la copertura minima è filesystem locali e OneDrive/SharePoint; gli altri tipi sono previsti nel prodotto generico successivo.
-- BR‑2: Il sistema deve fornire report di utilizzo e stime di costo per query quando si usano modelli cloud.
-- BR‑3: Il sistema deve esporre una UI web (admin + query) per selezione KB/namespace, ricerca, visualizzazione fonti e monitoraggio ingest (incluso upload documenti dove previsto).
-- BR‑4: Il sistema deve supportare caricamento documenti via UI/API per ridurre attrito operativo e velocizzare l’onboarding.
-- BR‑5: Il sistema deve supportare indicizzazione automatica e propagazione delle cancellazioni (delete sync) per garantire coerenza tra sorgente e KB.
-- BR‑6: Il sistema deve supportare auditabilità e compliance (citazioni, RBAC/ACL, audit log, retention) per contesti PA/enterprise.
 
 Criteri di successo
 - Completare il primo pilota con il cliente target entro X settimane e ottenere soddisfazione utente ≥ target.
@@ -88,7 +92,8 @@ Richieste operative aggiuntive (security/hand‑off)
 
 8. Roadmap di alto livello e milestone commerciali
 - M3 (Completata): Implementazione UI Completa, Streaming SSE, Ingest worker (PDF/DOCX), Watcher, API Key Auth.
-- M4 (In corso): Stabilizzazione & Release Hardening (consolidamento bootstrap, cleanup repo).
+- M4 (Completata): Stabilization & Release Hardening (consolidamento bootstrap, cleanup repo, DOCX end-to-end, Smoke Test).
+- M5 (Pianificata): Observability & Advanced Query Logging.
 
 9. Rischi business
 - Rischio di mancata adozione → mitigare con formazione e POC con utenti reali.

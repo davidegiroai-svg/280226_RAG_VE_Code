@@ -1,27 +1,28 @@
-Software Requirements Specification (SRS)
+# Software Requirements Specification (SRS) - Target State
 
-1. Introduction
-This SRS specifies functional and non-functional requirements for the RAG multi-KB system. It is written to be implementation-agnostic and avoids references to current development artifact names.
+> [!NOTE]
+> **Tipo Documento:** TARGET STATE / TO-BE TECHNICAL SPEC
+> **Stato:** Requisiti Tecnici a Regime
+> **Finalità:** Definire le specifiche funzionali e non funzionali del sistema.
+> **Ambito Temporale:** Progetto complessivo.
+> 
+> **Nota Esplicita:** Alcuni requisiti (es. FR-1 cloud connectors, FR-11 RBAC) sono target futuri e non presenti nella release M4 corrente.
 
-2. Functional Requirements
-- FR-1: Ingestion
-  - Support connectors for: local filesystem, OneDrive/SharePoint, S3, web crawl, and manual upload.
-  - Perform chunking, metadata extraction, and deduplication.
-  - Provide incremental sync with failure/retry handling and logs.
+## 1. Stato dei Requisiti Funzionali
 
-- FR-2: Embedding and Vectorization
-  - Compute embeddings using pluggable embedding providers (local or API).
-  - Store vectors in a vector-capable store with namespace per KB (see data model).
-  - Allow data isolation either by a numeric/UUID `kb_id` or a human-friendly `kb_namespace`; the latter may be derived from the former using a deterministic rule. Queries should be able to scope by either identifier.
-  - Support configurable chunk size and overlap.
+| ID | Requisito | Stato | Nota |
+| :--- | :--- | :--- | :--- |
+| **FR-1** | Ingest Multi-fonte | PARZIALE | Filesystem OK, Cloud/Web ROADMAP. |
+| **FR-2** | Embedding & Vectorization | IMPLEMENTATO | Ollama 768d attivo. |
+| **FR-3** | Query API & SSE Streaming| IMPLEMENTATO | Endpoint `/api/v1/query/stream` attivo. |
+| **FR-9** | Output Modes Advanced | PIANIFICATO | Roadmap M5+. |
+| **FR-11**| Security Auth | PARZIALE | API Key OK, RBAC ROADMAP. |
+| **FR-12**| Observability | PARZIALE | Health OK, Metrics ROADMAP M5. |
 
-- FR-3: Query API
-  - Accept natural language queries via REST API (endpoints versioned under `/api/v1`).
-  - Return ranked passages with provenance and confidence scores.
-  - Optionally synthesize an LLM answer with citations to source chunks.
-
-- FR-4: Admin UI
-  - Allow creation/deletion of KBs, mapping connectors, and viewing ingestion logs.
+---
+Data aggiornamento: 2026-03-10
+## 2. Introduction
+This SRS specifies functional and non-functional requirements for the RAG multi-KB system.
 
 3. Non-Functional Requirements
 - NFR-1: Security

@@ -20,14 +20,17 @@
 - **FR-07**: Upload API (POST /upload).
 - **FR-08**: Ricerca Ibrida (Vector + FTS).
 
-### Frontend & Auth (v3)
-- **FR-09**: Interfaccia Web Search/Documents/KBs.
-- **FR-10**: Autenticazione via Header X-API-Key.
+### Stabilization & Hardening (v4)
+- **STAB-01**: Unificazione bootstrap DB (v4).
+- **STAB-02**: Coerenza formati (DOCX end-to-end) (v4).
+- **STAB-03**: Smoke Test Suite (v4).
+- **STAB-04**: Repo Sanitization (.env.example tracking) (v4).
 
-## Real-Time Requirements (M4 Stabilization)
-- **STAB-01**: Unificazione bootstrap DB.
-- **STAB-02**: Coerenza formati (DOCX ovunque).
-- **STAB-03**: Logging query persistente.
+### Observability (v5)
+- **OBS-01**: Query Logging persistente (`query_log`, best-effort, GDPR-safe) (v5).
+- **OBS-02**: Endpoint `/metrics` con 5 contatori JSON, protetto da API key (v5).
+- **OBS-03**: DOCX Testing — 6 test automatici (v5).
+- **OBS-04**: `/health/ready` schema check su tabelle core (v5).
 
 ## Proposed / Future Requirements (Backlog)
 - [ ] Supporto JWT/OIDC.
@@ -36,4 +39,4 @@
 - [ ] Output structuring (JSON templates).
 
 ---
-*Last surgical correction: 2026-03-10. JWT/RBAC requirement moved to future/backlog.*
+*Last surgical correction: 2026-03-10. M5 OBS-01..04 marked implemented. JWT/RBAC remains future/backlog.*

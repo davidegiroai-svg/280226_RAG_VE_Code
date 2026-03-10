@@ -148,5 +148,5 @@ docker compose up -d db api
 | Frontend risponde 401 | `FRONTEND_API_KEY` vuota o mancante | Esegui `bootstrap_auth.ps1` |
 | `/health` risponde 503 | DB non pronto | Attendi 30s e riprova |
 | Embedding lento o assente | Ollama non in esecuzione | Avvia Ollama e verifica `ollama list` |
-| Upload fallisce con 415 | Tipo file non supportato | Usa PDF, TXT, MD, CSV o JSON |
+| Upload fallisce con 415 | Tipo file non supportato | Usa PDF, TXT, MD, CSV, JSON o DOCX |
 | Watcher non parte | Profilo non specificato | Usa `--profile watcher` |

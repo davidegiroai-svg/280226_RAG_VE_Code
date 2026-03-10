@@ -1,4 +1,9 @@
-# Project Status Snapshot (post CC-05.2)
+# [DEPRECATED] Project Status Snapshot (post CC-05.2)
+
+> [!CAUTION]
+> **DOCUMENTO STORICO / NON USARE COME SOURCE OF TRUTH OPERATIVA**
+> Questo file risale al 2 Marzo 2026 e non riflette lo stato attuale (M4). Per lo stato reale, consultare `.planning/STATE.md`.
+
 
 **Date:** 2026-03-02  
 **Last Commit:** `610e100` — M0: CC-05.2 fix mojibake in ingest  

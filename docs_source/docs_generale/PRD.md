@@ -1,32 +1,31 @@
-Documento dei Requisiti di Prodotto (PRD)
+# Product Requirements Document (PRD) - Target State
 
-Panoramica
-Questo documento descrive i requisiti di prodotto per un sistema RAG (Retrieval-Augmented Generation) "Docker-first", agnostico rispetto ai fornitori, che supporta più knowledge base (multi-KB), connettori di ingest flessibili e backend modello sia locali che cloud. Il contenuto è neutro rispetto a layout o artefatti di sviluppo sperimentali.
+> [!NOTE]
+> **Tipo Documento:** TARGET STATE / TO-BE PRODUCT VISION
+> **Stato:** Requisiti di Prodotto a Regime
+> **Finalità:** Dettagliare le funzionalità desiderate per il sistema RAG.
+> **Fonte Primaria Verità:** Il codice per lo stato attuale, questo documento per le feature roadmap.
+> 
+> **Nota Esplicita:** Questo documento rappresenta il perimetro finale del prodotto. Alcune epiche (es. Connettori Enterprise, Security RBAC) sono attualmente in fase di sviluppo o roadmap futura.
 
-Obiettivi
-- Fornire risposte accurate e spiegabili combinando ricerca vettoriale su più KB e sintesi tramite LLM.
-- Supportare deployment on‑premise e cloud con runbook operativi chiari.
-- Abilitare ingestione sicura da fonti aziendali comuni (condivisioni file, OneDrive/SharePoint, Google Drive, S3, PDF, DOCX).
-  * *Nota MVP Venezia*: la priorità iniziale è su filesystem locali e OneDrive/SharePoint; gli altri connettori (S3, crawling web) rientrano nella roadmap del prodotto generico.
-- Permettere la selezione di provider modello (runtime locale o API provider) tramite un "Model Adapter" pluggabile.
+## 1. Feature Status Matrix (Stato Attuale vs Target)
 
-Caratteristiche principali
-- Gestione multi‑KB con namespacing.
-- Connettori di ingest con sincronizzazione incrementale e monitoraggio.
-- Pipeline di chunking + embedding con parametri configurabili.
-- Archiviazione vettoriale con metadati di provenienza, versioning e politiche di pruning.
-- Orchestrazione query e prompt con grounding delle fonti e citazioni.
-- Interfaccia amministrativa per upload, mappatura cartelle e revisione log di ingest.
-- Monitoraggio, logging e report di costo/uso.
-- Frontend web minimale per query (KB/namespace, top_k, fonti) e gestione documenti (upload/stato).
-- Upload documenti via UI/API con salvataggio in inbox per KB.
-- Indicizzazione automatica (watcher/polling) e delete propagation (coerenza sorgente↔KB).
-- Answer synthesis (RAG completa) e output modes (summary/table/checklist - PIANIFICATI).
-- Citazioni pagina-livello per PDF (titolo/pagina/sezione).
-- Observability (metriche/log/tracing) ed Evaluation harness (Precision@K, MRR, regressioni).
-- Retrieval upgrades (rewrite, hybrid search, reranker, caching).
-- Enterprise connectors (SharePoint/S3/Drive/SAP/Salesforce) con sync incrementale e ACL.
-- Security & Compliance (auth, RBAC/ACL, audit log, TLS, retention).
+| Feature | Stato | Nota |
+| :--- | :--- | :--- |
+| **Multi-KB Management** | IMPLEMENTATO | Namespacing via DB attivo. |
+| **Ingest Pipeline** | IMPLEMENTATO | Supporto PDF/TXT/MD/CSV/JSON/DOCX. |
+| **Watcher (Auto-index)**| IMPLEMENTATO | Polling robusto su Docker/Windows. |
+| **RAG Answer Synthesis** | IMPLEMENTATO | SSE Streaming via Ollama attivo. |
+| **Auth (API Key)** | IMPLEMENTATO | Header X-API-Key hashata. |
+| **Hybrid Search (FTS)** | IMPLEMENTATO | RRF (BM25 + Vector) attivo. |
+| **Output Modes** | PIANIFICATO | Summary/Table/JSON (Roadmap M5). |
+| **RBAC / ACL Granulari** | ROADMAP | Target per versione Enterprise. |
+| **Connettori Cloud** | ROADMAP | SharePoint/OneDrive in roadmap. |
+| **Observability (/metrics)**| ROADMAP | Endpoint Prometheus (Pianificato M5). |
+
+## 2. Panoramica Target
+Questo documento descrive i requisiti di prodotto per un sistema RAG (Retrieval-Augmented Generation) "Docker-first", agnostico rispetto ai fornitori, che supporta più knowledge base (multi-KB), connettori di ingest flessibili e backend modello sia locali che cloud.
+
 
 Metriche di successo
 - MRR (Mean Reciprocal Rank) sulle porzioni recuperate ≥ baseline target (da definire).

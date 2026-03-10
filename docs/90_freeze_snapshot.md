@@ -1,4 +1,9 @@
-# Freeze Snapshot — RAG VE PoC
+# [DEPRECATED] Freeze Snapshot — RAG VE PoC
+
+> [!CAUTION]
+> **DOCUMENTO STORICO / NON USARE COME SOURCE OF TRUTH OPERATIVA**
+> Questo file è un'istantanea obsoleta del 28 Febbraio 2026.
+
 
 **Timestamp:** 2026-02-28T16:15:00
 **Project root:** C:\Users\D.Giro\280226_RAG_VE_Code

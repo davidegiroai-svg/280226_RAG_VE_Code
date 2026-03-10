@@ -1,4 +1,9 @@
-# Resume Checklist (Ripartire Domani)
+# [DEPRECATED] Resume Checklist (Ripartire Domani)
+
+> [!CAUTION]
+> **DOCUMENTO STORICO / NON USARE COME SOURCE OF TRUTH OPERATIVA**
+> Questo file risale al 2 Marzo 2026. L'automatizzazione di Claude Code rende obsoleti questi checklist manuali.
+
 
 **Date:** 2026-03-02  
 **Status:** Ready to restart from M0-CC-05.2 baseline (repo pushed to GitHub)

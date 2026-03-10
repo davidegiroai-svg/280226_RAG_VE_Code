@@ -1,28 +1,24 @@
-Panoramica dell'architettura
+# Architecture Design - Target State
 
-Scopo
-Questo documento descrive l'architettura ad alto livello per il sistema RAG multi‑KB. Le descrizioni sono generiche e non fanno riferimento a directory o artefatti sperimentali specifici.
+> [!NOTE]
+> **Tipo Documento:** TARGET STATE / TO-BE ARCHITECTURE
+> **Stato:** Design Architetturale a Regime
+> **Finalità:** Descrivere la struttura dei componenti e i flussi del sistema.
+> 
+> **Nota Esplicita:** I componenti marcati come [ROADMAP] (es. Connector Services Enterprise) non sono inclusi nell'architettura operativa corrente M4.
 
-Componenti
-- Worker di ingest: connettori che acquisiscono dati dalle sorgenti (filesystem, drive cloud, API), trasformano e chunkano i documenti, estraggono metadati e inviano chunk+embedding al vector store.
+## 1. Component Status (As-Is vs To-Be)
 
-- Servizio di embedding: componente pluggabile che chiama modelli di embedding locali o remoti. Può essere co‑locato con i worker o eseguito come servizio separato.
+- **Vector Store (PG + pgvector):** IMPLEMENTATO.
+- **Orchestrator API (FastAPI):** IMPLEMENTATO.
+- **Auth Middleware (API Key Hash):** IMPLEMENTATO.
+- **Watcher / Indexer Service:** IMPLEMENTATO (Polling, supporta PDF/DOCX/TXT/MD/CSV/JSON).
+- **Frontend Web (React/Vite):** IMPLEMENTATO.
+- **Connector Services (Cloud/S3):** [ROADMAP].
+- **Observability (/metrics):** [ROADMAP M5].
 
-- Vector store: store principale per il retrieval con indici di similarità vettoriale, supporto per namespace per più KB e colonne metadati per la provenienza (raccomandazione: PostgreSQL + pgvector o store compatibile).
-
-- Orchestrator API: backend API (REST) che espone controllo ingest, endpoint di query, health e operazioni di gestione.
-
-- Model Adapter: livello di astrazione che instrada le chiamate LLM a runtime locali (es. container modello) o a provider esterni; si occupa di assemblare i prompt, budgeting token e filtri di sicurezza.
-
-- Admin UI: interfaccia web leggera per gestione KB, monitoraggio ingest e analytics di base.
-- Frontend Web UI: web app minimale (query + fonti) con selezione KB/namespace e (opzionale) upload/stato indicizzazione.
-- Watcher/Indexer: servizio di polling per inbox KB (auto-index e delete propagation) robusto su Windows/Docker.
-- Response Router: gestione modalità output (summary/table/checklist/extract-json) e validazione schema.
-- Observability: logging strutturato, metriche e tracing con request_id.
-- Evaluation harness: pipeline offline per benchmark e regressioni (Precision@K, MRR, grounding).
-
-
-- Scheduler / Job: gestisce schedulazione degli ingest, retry e job in background.
+## 2. Panoramica dell'architettura
+Questo documento descrive l'architettura ad alto livello per il sistema RAG multi‑KB.
 
 Flusso dei dati
 1. I connettori sorgente individuano i documenti e li inviano ai Worker di ingest.

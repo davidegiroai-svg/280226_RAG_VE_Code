@@ -28,17 +28,23 @@ Recupero accurato dei chunk più rilevanti dai documenti della KB, con embedding
 - ✓ Hybrid search (BM25 + RRF) — v2.0
 - ✓ **Auth: API Key hashata** (X-API-Key header) — v3.0
 - ✓ **Frontend Web (React/Vite)** — v3.0
+- ✓ **M4 Stabilization & Hardening** (SQL Init, Smoke Test, DOCX end-to-end, Auth Bootstrap) — v4.0
 
-### Current Focus: Milestone M4 – Stabilization & Release Hardening
-- [ ] **Bootstrap Consolidation:** Unificare script di init e migrazione.
-- [ ] **Security Hardening:** Cleanup dei secret committed (.env, etc.) e separazione config.
-- [ ] **Document Logic Alignment:** Estendere supporto DOCX e formati a Watcher/UI.
-- [ ] **Observability Implementation:** Attivazione logging query in DB.
+### Milestone M4 — Stabilization & Release Hardening (DONE)
+- ✓ **Bootstrap Consolidation:** Unificato script di init e migrazione.
+- ✓ **Security Hardening:** Sanitizzazione repository e .env.example.
+- ✓ **Document Logic Alignment:** Supporto DOCX esteso a watcher e UI.
+- ✓ **Smoke Test Suite:** Validazione automatica post-deploy.
 
-### Out of Scope (Current)
-- JWT/RBAC (Pianificato per Enterprise, non nell'implementazione corrente).
-- OneDrive/SharePoint Connectors (Roadmap futura).
-- /metrics endpoint (Roadmap futura).
+### Milestone M5 — Observability & Enterprise Readiness (DONE)
+- ✓ **Query Logging:** Tracciamento persistente delle query in DB (`query_log`, `_write_query_log`).
+- ✓ **Monitoring:** Endpoint `/metrics` con 5 contatori JSON (protetto da API key).
+- ✓ **Docx Resilience:** 6 test in `tests/test_docx.py`, nessun bug trovato.
+- ✓ **Health Hardening:** `/health/ready` verifica tabelle core dello schema.
+
+### Out of Scope / Roadmap Future
+- JWT/RBAC (Pianificato per Enterprise).
+- OneDrive/SharePoint Connectors.
 
 ## Tech Stack
 - **Backend:** FastAPI, psycopg2 (SYNC), uvicorn.
@@ -48,4 +54,4 @@ Recupero accurato dei chunk più rilevanti dai documenti della KB, con embedding
 - **Security:** API Key hashata (SHA-256).
 
 ---
-*Last updated: 2026-03-10 — Alignment surgically corrected to reflect M3 DONE and M4 IN PROGRESS.*
+*Last updated: 2026-03-10 — M5 DONE (Query Logging, /metrics, DOCX Testing, /health/ready hardening).*

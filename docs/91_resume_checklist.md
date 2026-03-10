@@ -1,4 +1,8 @@
-# Resume Checklist — RAG VE PoC (ripartenza)
+# [DEPRECATED] Resume Checklist — RAG VE PoC (ripartenza)
+
+> [!CAUTION]
+> **DOCUMENTO STORICO / NON USARE COME SOURCE OF TRUTH OPERATIVA**
+
 
 ## Comandi PowerShell (copiabili)
 

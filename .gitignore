@@ -14,5 +14,5 @@ data/inbox/**
 # Git worktrees
 .worktrees/
 
-# Git worktrees
-.worktrees/
+# Report QA e validation — generati da Claude Code, non parte del repo
+docs/VALIDATION_*.md
