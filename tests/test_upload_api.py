@@ -41,7 +41,11 @@ class TestHealthReady:
 
     def test_health_ready_200_quando_db_e_vector_ok(self):
         ctx, mock_cur = _mock_cursor()
-        mock_cur.fetchone.return_value = {"extname": "vector"}
+        # /health/ready chiama fetchone() due volte: pgvector + count tabelle core
+        mock_cur.fetchone.side_effect = [
+            {"extname": "vector"},  # Check 1: pgvector presente
+            {"count": 3},           # Check 2: 3 tabelle core presenti
+        ]
 
         with patch("app.main.get_db_cursor", return_value=ctx):
             resp = client.get("/health/ready")
@@ -146,7 +150,7 @@ class TestUpload:
         monkeypatch.setenv("INBOX_ROOT", str(tmp_path))
         resp = client.post(
             "/api/v1/upload?kb=demo",
-            files={"files": _make_file("relazione.docx", b"fake docx content")},
+            files={"files": _make_file("virus.exe", b"fake exe content")},
         )
         assert resp.status_code == 415
         assert "supportato" in resp.json()["detail"].lower()

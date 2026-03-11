@@ -136,10 +136,10 @@ class TestInboxHandler:
 
         mock_ingest.assert_not_called()
 
-    def test_filtro_estensioni_ignora_docx(self):
-        """File .docx non supportato: ingest NON viene chiamato."""
+    def test_filtro_estensioni_ignora_exe(self):
+        """File .exe non supportato: ingest NON viene chiamato."""
         handler = InboxHandler("/data/inbox")
-        event = _make_event("/data/inbox/demo/relazione.docx")
+        event = _make_event("/data/inbox/demo/virus.exe")
 
         with patch("app.watcher.ingest_single_file") as mock_ingest:
             handler.on_created(event)
