@@ -35,7 +35,7 @@ def hash_api_key(key: str) -> str:
     return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
-def verify_api_key(key_hash: str, cursor) -> bool:
+def verify_api_key(key_hash: str, cursor):
     """Verifica che il hash di una API key sia presente e valida nel DB.
 
     Controlla:
@@ -48,11 +48,11 @@ def verify_api_key(key_hash: str, cursor) -> bool:
         cursor: cursore psycopg2 aperto (RealDictCursor)
 
     Returns:
-        True se la key è valida e attiva, False altrimenti
+        dict con {id, name} se la key è valida e attiva, None altrimenti
     """
     cursor.execute(
         """
-        SELECT id FROM api_keys
+        SELECT id, name FROM api_keys
         WHERE key_hash = %s
           AND is_active = TRUE
           AND (expires_at IS NULL OR expires_at > NOW())
@@ -60,7 +60,7 @@ def verify_api_key(key_hash: str, cursor) -> bool:
         """,
         (key_hash,),
     )
-    return cursor.fetchone() is not None
+    return cursor.fetchone()
 
 
 def require_api_key(x_api_key: str = Header(default=None, alias="X-API-Key")):
@@ -68,13 +68,17 @@ def require_api_key(x_api_key: str = Header(default=None, alias="X-API-Key")):
 
     Se AUTH_ENABLED=false (env var), la verifica viene saltata.
 
+    Returns:
+        str: nome della key (usato come user_id) se auth attiva e valida
+        None: se AUTH_ENABLED=false
+
     Raises:
         HTTPException 401: header X-API-Key mancante
         HTTPException 403: key invalida, revocata o scaduta
     """
     # Auth disabilitata in sviluppo
     if os.environ.get("AUTH_ENABLED", "true").lower() in ("false", "0", "no"):
-        return
+        return None
 
     if not x_api_key:
         raise HTTPException(
@@ -86,7 +90,7 @@ def require_api_key(x_api_key: str = Header(default=None, alias="X-API-Key")):
 
     try:
         with get_db_cursor() as cursor:
-            valid = verify_api_key(key_hash, cursor)
+            key_record = verify_api_key(key_hash, cursor)
     except Exception:
         # In caso di errore DB durante verifica auth: deny per sicurezza
         raise HTTPException(
@@ -94,8 +98,10 @@ def require_api_key(x_api_key: str = Header(default=None, alias="X-API-Key")):
             detail="Errore di sistema durante la verifica dell'autenticazione.",
         )
 
-    if not valid:
+    if not key_record:
         raise HTTPException(
             status_code=403,
             detail="API key non valida, revocata o scaduta.",
         )
+
+    return key_record["name"]

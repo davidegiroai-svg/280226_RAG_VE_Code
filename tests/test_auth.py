@@ -76,21 +76,23 @@ class TestHashApiKey:
 
 class TestVerifyApiKey:
 
-    def test_verify_ritorna_true_se_key_attiva(self):
+    def test_verify_ritorna_dict_se_key_attiva(self):
         mock_cur = MagicMock()
-        mock_cur.fetchone.return_value = {"id": "uuid-123"}
+        mock_cur.fetchone.return_value = {"id": "uuid-123", "name": "chiave-test"}
 
         result = verify_api_key("abcdef1234", mock_cur)
 
-        assert result is True
+        assert result is not None
+        assert result["name"] == "chiave-test"
+        assert result["id"] == "uuid-123"
 
-    def test_verify_ritorna_false_se_key_non_trovata(self):
+    def test_verify_ritorna_none_se_key_non_trovata(self):
         mock_cur = MagicMock()
         mock_cur.fetchone.return_value = None
 
         result = verify_api_key("key-inesistente", mock_cur)
 
-        assert result is False
+        assert result is None
 
     def test_verify_esegue_query_con_hash(self):
         mock_cur = MagicMock()
@@ -147,7 +149,7 @@ class TestRequireApiKey:
         monkeypatch.setenv("EMBEDDING_PROVIDER", "dummy")
 
         # Mock auth: key trovata nel DB
-        auth_ctx, auth_cur = _mock_cursor(row={"id": "key-uuid"})
+        auth_ctx, auth_cur = _mock_cursor(row={"id": "key-uuid", "name": "test-key"})
         # Mock query DB: nessun risultato
         query_ctx, query_cur = _mock_cursor(row=None)
         query_cur.fetchall.return_value = []
@@ -189,12 +191,43 @@ class TestRequireApiKey:
     def test_health_ready_pubblico_senza_key(self, monkeypatch):
         """GET /health/ready non richiede X-API-Key."""
         monkeypatch.setenv("AUTH_ENABLED", "true")
-        ctx, mock_cur = _mock_cursor(row={"extname": "vector"})
+        ctx, mock_cur = _mock_cursor()
+        # /health/ready chiama fetchone() due volte: pgvector + count tabelle core
+        mock_cur.fetchone.side_effect = [
+            {"extname": "vector"},  # Check 1: pgvector presente
+            {"count": 3},           # Check 2: 3 tabelle core presenti
+        ]
 
         with patch("app.main.get_db_cursor", return_value=ctx):
             resp = client.get("/health/ready")
 
         assert resp.status_code == 200
+        assert resp.json()["status"] == "ready"
+
+
+# ─────────────────────────────────────────────────────────
+# Unit tests: contratto di ritorno di require_api_key()
+# ─────────────────────────────────────────────────────────
+
+class TestRequireApiKeyContratto:
+
+    def test_ritorna_nome_key_se_auth_attiva_e_valida(self, monkeypatch):
+        """Con AUTH_ENABLED=true e key valida, require_api_key() deve restituire il name della key."""
+        monkeypatch.setenv("AUTH_ENABLED", "true")
+        ctx, mock_cur = _mock_cursor(row={"id": "uuid-abc", "name": "chiave-admin"})
+
+        with patch("app.auth.get_db_cursor", return_value=ctx):
+            result = require_api_key(x_api_key="qualsiasi-raw-key")
+
+        assert result == "chiave-admin"
+
+    def test_ritorna_none_se_auth_disabilitata(self, monkeypatch):
+        """Con AUTH_ENABLED=false, require_api_key() deve restituire None indipendentemente dall'header."""
+        monkeypatch.setenv("AUTH_ENABLED", "false")
+
+        result = require_api_key(x_api_key=None)
+
+        assert result is None
 
 
 # ─────────────────────────────────────────────────────────
@@ -228,7 +261,7 @@ class TestEndpointProtetti:
         monkeypatch.setenv("AUTH_ENABLED", "true")
 
         # Mock auth: key trovata
-        auth_ctx, _ = _mock_cursor(row={"id": "key-uuid"})
+        auth_ctx, _ = _mock_cursor(row={"id": "key-uuid", "name": "test-key"})
         # Mock query kbs: lista vuota
         kbs_ctx, kbs_cur = _mock_cursor()
         kbs_cur.fetchall.return_value = []

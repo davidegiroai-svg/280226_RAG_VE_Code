@@ -27,7 +27,7 @@ app = FastAPI(
 )
 
 
-def _write_query_log(query_text: str, sources: list, model_used: str, response_time_ms: int) -> None:
+def _write_query_log(query_text: str, sources: list, model_used: str, response_time_ms: int, user_id: str = None) -> None:
     """Scrive una riga in query_log. Best-effort: non propaga eccezioni."""
     try:
         chunks_json = json.dumps([
@@ -37,13 +37,29 @@ def _write_query_log(query_text: str, sources: list, model_used: str, response_t
             }
             for s in (sources or [])
         ])
+        # Estrae i namespace distinti presenti nelle sources
+        namespaces = list({
+            (s["kb_namespace"] if isinstance(s, dict) else s.kb_namespace)
+            for s in (sources or [])
+            if (s["kb_namespace"] if isinstance(s, dict) else s.kb_namespace)
+        })
         with get_db_cursor(commit=True) as cursor:
+            # Risolve namespace → UUID reali della knowledge_base
+            kb_ids_pg = None
+            if namespaces:
+                cursor.execute(
+                    "SELECT id::text FROM knowledge_base WHERE namespace = ANY(%s)",
+                    (namespaces,),
+                )
+                rows = cursor.fetchall()
+                if rows:
+                    kb_ids_pg = "{" + ",".join(r["id"] for r in rows) + "}"
             cursor.execute(
                 """
-                INSERT INTO query_log (query_text, retrieved_chunks, model_used, response_time_ms)
-                VALUES (%s, %s::jsonb, %s, %s)
+                INSERT INTO query_log (user_id, kb_ids, query_text, retrieved_chunks, model_used, response_time_ms)
+                VALUES (%s, %s::uuid[], %s, %s::jsonb, %s, %s)
                 """,
-                (query_text, chunks_json, model_used, response_time_ms),
+                (user_id, kb_ids_pg, query_text, chunks_json, model_used, response_time_ms),
             )
     except Exception as e:
         logger.warning("query_log write failed: %s", e)
@@ -225,7 +241,7 @@ def query_api(request: QueryRequest, _auth=Depends(require_api_key)):
             if request.synthesize
             else os.environ.get("EMBEDDING_MODEL", "nomic-embed-text")
         )
-        _write_query_log(request.query, sources, model_used, response_time_ms)
+        _write_query_log(request.query, sources, model_used, response_time_ms, user_id=_auth)
 
         return QueryResponse(answer=answer, sources=sources)
 
@@ -276,7 +292,7 @@ def query_stream(request: QueryRequest, _auth=Depends(require_api_key)):
         if request.synthesize
         else "retrieval-only"
     )
-    _write_query_log(request.query, sources, stream_model_used, retrieval_ms)
+    _write_query_log(request.query, sources, stream_model_used, retrieval_ms, user_id=_auth)
 
     # Serializza sources come lista di dict (compatibile con Source pydantic)
     sources_data = [
@@ -355,7 +371,7 @@ def health_ready():
             # Check 2: tabelle core dello schema (knowledge_base, documents, chunks)
             cursor.execute(
                 """
-                SELECT COUNT(*) FROM information_schema.tables
+                SELECT COUNT(*)::int AS count FROM information_schema.tables
                 WHERE table_schema = 'public'
                   AND table_name IN ('knowledge_base', 'documents', 'chunks')
                 """
