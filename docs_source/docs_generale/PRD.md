@@ -17,11 +17,12 @@
 | **Watcher (Auto-index)**| IMPLEMENTATO | Polling robusto su Docker/Windows. |
 | **RAG Answer Synthesis** | IMPLEMENTATO | SSE Streaming via Ollama attivo. |
 | **Auth (API Key)** | IMPLEMENTATO | Header X-API-Key hashata. |
+| **Audit Logging** | IMPLEMENTATO | Tracciamento user_id/kb_ids (M6-A). |
 | **Hybrid Search (FTS)** | IMPLEMENTATO | RRF (BM25 + Vector) attivo. |
-| **Output Modes** | PIANIFICATO | Summary/Table/JSON (Roadmap M5). |
-| **RBAC / ACL Granulari** | ROADMAP | Target per versione Enterprise. |
+| **Output Modes** | ROADMAP | Summary/Table/JSON (Future release). |
+| **RBAC / ACL (Base)** | IMPLEMENTATO | Supporto ruoli `user`/`admin` (M6-B). |
 | **Connettori Cloud** | ROADMAP | SharePoint/OneDrive in roadmap. |
-| **Observability (/metrics)**| ROADMAP | Endpoint Prometheus (Pianificato M5). |
+| **Observability (/metrics)**| IMPLEMENTATO| Endpoint di telemetria operativa (JSON). |
 
 ## 2. Panoramica Target
 Questo documento descrive i requisiti di prodotto per un sistema RAG (Retrieval-Augmented Generation) "Docker-first", agnostico rispetto ai fornitori, che supporta più knowledge base (multi-KB), connettori di ingest flessibili e backend modello sia locali che cloud.
@@ -209,4 +210,4 @@ Questa appendice formalizza le estensioni emerse e le colloca in una roadmap coe
 
 ---
 
-Data aggiornamento: 2026-03-03
+Data aggiornamento: 2026-03-12 (Post-M6-B)

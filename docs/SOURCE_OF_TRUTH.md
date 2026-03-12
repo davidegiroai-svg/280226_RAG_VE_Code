@@ -22,14 +22,14 @@ Questo documento è la bussola per navigare la documentazione del progetto. Defi
 
 | Categoria | Documento | Scopo | Note di affidabilità |
 | :--- | :--- | :--- | :--- |
-| **Operative** | `CLAUDE.md` | Entry point sessioni e regole. | Riflette M4 (Stabilizzata). |
-| **Operative** | `.planning/STATE.md` | Snapshot reale delle milestone. | M1-M4 DONE, M5 READY. |
-| **Runbook** | `DELIVERY_README.md`| Guida al deploy IT. | In `docs_source/docs_generale/`. |
-| **Target State** | `BRD.md` | Visione di Business Target. | In `docs_source/docs_generale/`. |
-| **Target State** | `PRD.md` | Visione di Prodotto Target. | In `docs_source/docs_generale/`. |
-| **Target State** | `SRS.md` | Requisiti Tecnici Target. | In `docs_source/docs_generale/`. |
-| **Target State** | `ARCHITECTURE.md`| Architettura Target Finale. | In `docs_source/docs_generale/`. |
+| **Operative** | `CLAUDE.md` | Entry point sessioni e regole. | Riflette M6-B (Basic RBAC). |
+| **Operative** | `.planning/STATE.md` | Snapshot reale delle milestone. | M1-M6-B DONE (PUBLISHED). |
+| **Runbook** | `DELIVERY_README.md`| Guida al deploy IT. | In `docs_source/docs_generale/`. (Post-M6-A) |
+| **Target State** | `BRD.md` | Visione di Business Target. | Allineato post-M6-A. |
+| **Target State** | `PRD.md` | Visione di Prodotto Target. | Allineato post-M6-A. |
+| **Target State** | `SRS.md` | Requisiti Tecnici Target. | Allineato post-M6-A. |
+| **Target State** | `ARCHITECTURE.md`| Architettura Target Finale. | Allineato post-M6-A. |
 | **Historical** | `docs/90_freeze_*` | Freeze post M0. | **NON USARE.** Solo per audit storico. |
 
 ---
-*Ultimo aggiornamento: 2026-03-10 — Governance RAG VE Reform.*
+*Ultimo aggiornamento: 2026-03-12 — Post-M6-B Basic RBAC.*

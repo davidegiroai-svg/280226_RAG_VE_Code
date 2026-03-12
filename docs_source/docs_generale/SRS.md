@@ -15,9 +15,10 @@
 | **FR-1** | Ingest Multi-fonte | PARZIALE | Filesystem OK, Cloud/Web ROADMAP. |
 | **FR-2** | Embedding & Vectorization | IMPLEMENTATO | Ollama 768d attivo. |
 | **FR-3** | Query API & SSE Streaming| IMPLEMENTATO | Endpoint `/api/v1/query/stream` attivo. |
-| **FR-9** | Output Modes Advanced | PIANIFICATO | Roadmap M5+. |
-| **FR-11**| Security Auth | PARZIALE | API Key OK, RBAC ROADMAP. |
-| **FR-12**| Observability | PARZIALE | Health OK, Metrics ROADMAP M5. |
+| **FR-9** | Output Modes Advanced | PIANIFICATO | Roadmap M7+. |
+| **FR-11**| Security Auth (Basic RBAC)| IMPLEMENTATO | Ruoli `admin`/`user` (M6-B). |
+| **FR-11.1**| Audit Logging | IMPLEMENTATO | user_id/kb_ids tracking (M6-A). |
+| **FR-12**| Observability | IMPLEMENTATO | Health & Metrics operative. |
 
 ---
 Data aggiornamento: 2026-03-10
@@ -165,7 +166,8 @@ This addendum captures newly agreed requirements and makes them testable. It is 
 - Authentication is required via X-API-Key header (SHA-256 hashed in DB).
 - Authorization model:
   - API Key valid/active check.
-  - No RBAC/ACL implemented in the current version.
+  - Basic RBAC: ruoli `admin` e `user` supportati (M6-B).
+  - No ACL granulari per KB nella versione attuale.
 - Audit log:
   - store who requested what (user_id), when, target KB(s), and request_id.
 - Retention and anonymization policies must be configurable.
@@ -174,7 +176,7 @@ This addendum captures newly agreed requirements and makes them testable. It is 
 - Provide:
   - `GET /health`
   - `GET /health/ready`
-  - `GET /metrics` (NON IMPLEMENTATO)
+  - `GET /metrics`
 - Structured logs MUST include: timestamp, level, request_id, endpoint, latency_ms, error_code (when applicable).
 
 ### FR-13: Evaluation harness (offline)
@@ -209,4 +211,4 @@ This addendum captures newly agreed requirements and makes them testable. It is 
 
 ---
 
-Updated: 2026-03-03
+Updated: 2026-03-12 (Post-M6-B)

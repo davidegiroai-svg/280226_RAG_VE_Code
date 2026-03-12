@@ -1,9 +1,9 @@
 ---
 gsd_state_version: 1.0
-milestone: M5
-milestone_name: Enterprise Ready & Observability
+milestone: M6-B
+milestone_name: Basic RBAC on API Keys
 status: DONE
-last_updated: "2026-03-10T16:00:00Z"
+last_updated: "2026-03-12T10:30:00Z"
 ---
 
 # Project State - Operative Source of Truth
@@ -14,15 +14,14 @@ last_updated: "2026-03-10T16:00:00Z"
 > **Finalità:** Snapshot reale e verificabile dello stato di avanzamento.
 
 
-## Current Milestone: M5 – Enterprise Ready & Observability (DONE)
+## Current Milestone: M6-B – Basic RBAC on API Keys (DONE)
 **Status:** Completed ✅
 
 ### Milestone Status
-- **v1.0 (Core):** [██████████] 100% DONE
-- **v2.0 (Advanced):** [██████████] 100% DONE (PDF, Upload, LLM, Watcher, Hybrid)
-- **v3.0 (Frontend & Auth):** [██████████] 100% DONE (React UI, API Key Auth)
-- **v4.0 (Stabilization):** [██████████] 100% DONE (Bootstrap, Security, Smoke Test, DOCX)
-- **v5.0 (Observability):** [██████████] 100% DONE (Query Logging, /metrics, DOCX Tests, /health/ready)
+- **v1.0-v4.0 (Core & Stab):** [██████████] 100% DONE
+- **v5.0 (Observability):** [██████████] 100% DONE
+- v6.0-A (Auditability): [██████████] 100% DONE (user_id & kb_ids tracking)
+- v6.0-B (Basic RBAC): [██████████] 100% DONE (admin/user roles)
 
 ## Technical Summary
 - **Primary Auth:** API Key (X-API-Key) con hash SHA-256 su DB.
@@ -30,18 +29,21 @@ last_updated: "2026-03-10T16:00:00Z"
 - **Ingest Path:** `/data/inbox/<kb_name>`.
 - **Search:** Vector, FTS, Hybrid (RRF).
 - **Hardening:** Bootstrap unificato, Smoke Test suites, .env cleanup.
-- **Observability:** query_log attivo, /metrics endpoint, /health/ready schema check.
+- Auditability: `query_log` valorizza `user_id` (nome API key) e `kb_ids` (UUID reali delle KB).
+- RBAC: API Key con ruoli `admin` e `user`. Endpoint `/api/v1/upload` e `/metrics` ora admin-only.
+- Observability: `/metrics` endpoint, `/health/ready` con schema check robusto.
 
-## Key Decisions (Post-M5 Alignment)
-- **Query Logging:** Attivo su /query e /query/stream. user_id=NULL (accettato), retrieved_chunks come JSONB {id,score}.
-- **Metrics:** GET /metrics protetto da API key. JSON semplice, no Prometheus dependency.
-- **DOCX Testing:** 6 test in test_docx.py. Nessun bug trovato nel parser esistente.
-- **/health/ready:** Ora verifica anche tabelle core (knowledge_base, documents, chunks).
+## Key Decisions (Post-M6-A Alignment)
+- **User Tracking:** `query_log.user_id` mappa il campo `name` della tabella `api_keys`. Risoluzione lato API.
+- KB Tracking: `query_log.kb_ids` salva gli UUID reali (non i namespace) per persistenza audit.
+- RBAC Design: Introdotta colonna `role` in `api_keys` con migration idempotente.
+- Safety: Default `role='user'` per garantire il principio di least privilege.
+- Legacy Tests: Riallineati i test DOCX alle specifiche di parsing M4.
 
-## Pending for M6
-1. user_id reale in query_log (richiede JOIN su api_keys).
+## Pending Roadmap (Backlog)
+1. Connettori Cloud Drive (SharePoint, OneDrive).
 2. JWT/RBAC (Enterprise Identity).
-3. Cloud Drive Connectors (SharePoint, OneDrive).
+3. Retention policy / GDPR per query_log.
 
 ---
-*Updated 2026-03-10 after M5 closure.*
+*Updated 2026-03-12 after M6-B closure.*

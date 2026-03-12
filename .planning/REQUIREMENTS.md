@@ -32,11 +32,17 @@
 - **OBS-03**: DOCX Testing — 6 test automatici (v5).
 - **OBS-04**: `/health/ready` schema check su tabelle core (v5).
 
+### Basic RBAC (v6-B)
+- **RBAC-01**: Supporto ruoli `user` e `admin` su API Key (v6-B).
+- **RBAC-02**: Endpoint amministrativi (`/upload`, `/metrics`) riservati a ruoli `admin` (v6-B).
+- **RBAC-03**: CLI di gestione potenziata per supporto ruoli (v6-B).
+
 ## Proposed / Future Requirements (Backlog)
+- [ ] Connettori cloud drive reali (SharePoint, OneDrive).
 - [ ] Supporto JWT/OIDC.
 - [ ] RBAC granulare per KB.
-- [ ] Connettori cloud drive reali.
+- [ ] Integrazione Identity Provider Enterprise (JWT/OIDC).
 - [ ] Output structuring (JSON templates).
 
 ---
-*Last surgical correction: 2026-03-10. M5 OBS-01..04 marked implemented. JWT/RBAC remains future/backlog.*
+*Last surgical correction: 2026-03-12. M6-B Basic RBAC marked implemented.*

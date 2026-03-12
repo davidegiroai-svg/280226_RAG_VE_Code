@@ -22,7 +22,9 @@ Percorso Windows: C:\Users\D.Giro\280226_RAG_VE_Code
 - M3 DONE (2026-03-10): UI Completa, Streaming SSE, Ingest worker, Watcher, API Key Auth.
 - M4 DONE (2026-03-10): Stabilization & Release Hardening (Bootstrap, Repo cleanup, Smoke Test, DOCX end-to-end).
 - M5 DONE (2026-03-10): Observability & Enterprise Expansion (Query Logging, /metrics, DOCX Testing, /health/ready hardening).
-- M6 TODO: TBD.
+- M6-A DONE (2026-03-11): Auditability Completion (user_id/kb_ids in query_log, legacy tests alignment).
+- M6-B DONE (2026-03-12): Basic RBAC on API Keys (role column, require_admin_key, /upload & /metrics admin-only).
+- M7 TODO: Cloud Drive Connectors (SharePoint/OneDrive) or Enterprise Identity.
 
 - Dettaglio checkpoint: _cc_status/checkpoint_status.md
 
@@ -72,6 +74,10 @@ docker compose down -v && docker compose up -d
 
 .\scripts\smoke_test.ps1
 
+docker compose exec api python -m app.manage_keys list
+
+docker compose exec api python -m app.manage_keys create --name "admin-key" --role admin
+
 ```
 
 
@@ -118,12 +124,6 @@ docker compose down -v && docker compose up -d
 
 \- DB + Docker Compose       → .claude/rules/db-rules.md     (auto: scripts/, docker-compose.yml)
 
-
-
-\## Roadmap M4 (Hardening)
-1\. Bootstrap Consolidation: unico script init/migration.
-2\. Repo Hygiene: .env cleanup, removing sensitive artifacts.
-3\. Logic alignment: extension of DOCX to all layers.
 
 
 ## Strumenti installati

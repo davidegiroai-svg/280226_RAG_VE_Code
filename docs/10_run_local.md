@@ -1,7 +1,7 @@
 # Avvio locale — RAG VE
 
 Guida operativa per avviare il sistema su macchina Windows con Docker Desktop.
-Valida per lo stato attuale: M3 completato (API, Frontend, Auth, Streaming).
+Valida per lo stato attuale: M6-B completato (Basic RBAC on API Keys).
 
 ---
 
@@ -95,6 +95,10 @@ Dovresti vedere l'interfaccia RAG VE con le pagine: Search, Upload, Documents, K
 ```powershell
 # Stato DB e vector extension
 Invoke-RestMethod -Uri 'http://localhost:8000/health/ready'
+
+# Metriche operative (richiede API Key con ruolo admin)
+$headers = @{ "X-API-Key" = "CHIAVE_ADMIN_REALE" }
+Invoke-RestMethod -Uri 'http://localhost:8000/metrics' -Headers $headers | ConvertTo-Json
 ```
 
 Risposta attesa: `{"status":"ok","database":"connected","vector":"ok"}`
@@ -129,6 +133,12 @@ docker compose --profile watcher stop watcher
 
 ```powershell
 docker compose exec api python -m app.manage_keys list
+```
+
+### Creare una nuova chiave con ruolo specifico
+
+```powershell
+docker compose exec api python -m app.manage_keys create --name "admin-user" --role admin
 ```
 
 ### Reset completo (cancella tutti i dati)

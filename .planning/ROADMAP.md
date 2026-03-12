@@ -12,15 +12,19 @@
 - [x] **v3.0 Frontend & Basic Security** (2026-03-10)
 - [x] **v4.0 Stabilization & Release Hardening** (2026-03-10)
 
-## Future Roadmap (M6+ - Next Focus)
-- [x] **Milestone 5: Enterprise Ready & Observability** (2026-03-10)
-    - [x] **Task 5.1: Query Logging** - query_log attivo su /query e /query/stream.
-    - [x] **Task 5.2: Monitoring** - GET /metrics con 5 contatori operativi (JSON semplice).
-    - [x] **Task 5.3: Docx Testing** - 6 test in tests/test_docx.py, nessun bug trovato.
-    - [x] **Task 5.4: Minor Hardening** - /health/ready verifica tabelle core schema.
-- [ ] **Output Modes** (Summary/Table/Extract-JSON).
+- [x] **v6.0-A Auditability Completion** (2026-03-11)
+- [x] **v6.0-B Basic RBAC on API Keys** (2026-03-12)
+    - [x] **role support:** colonna role in `api_keys`.
+    - [x] **admin endpoints:** `/upload` e `/metrics` admin-only.
+    - [x] **CLI update:** `manage_keys` con parametro `--role`.
+    - [x] **user_id tracking:** identità della API Key in `query_log`.
+    - [x] **kb_ids tracking:** UUID reali delle KB in `query_log`.
+    - [x] **test alignment:** fix legacy DOCX expectations.
+
+## Future Roadmap (M7+ - Next Focus)
 - [ ] **Cloud Drive Connectors** (SharePoint, OneDrive).
-- [ ] **Enterprise Identity** (JWT, RBAC/ACL reali).
+- [ ] **Enterprise Identity** (JWT, RBAC/ACL granulari per KB).
+- [ ] **Output Modes** (Summary/Table/Extract-JSON).
 
 ---
-*Updated 2026-03-10. Historically accurate to the current CODE state.*
+*Updated 2026-03-12. Accurate to the current CODE state.*

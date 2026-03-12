@@ -17,9 +17,9 @@
 - AI: Integrazione Ollama per Embedding e LLM Synthesis (Streaming SSE).
 
 ## 2. Gap Analysis vs Target Vision
-- **Conformità Enterprise:** Attualmente manca RBAC/ACL granulare (implementata solo API Key).
+- **Conformità Enterprise:** Auditability e Basic RBAC completati (M6-B).
 - **Integrazioni Cloud:** I connettori SharePoint/OneDrive sono in roadmap (target BR-1).
-- **Analisi Avanzata:** Reportistica costi e query logging avanzato sono target M5+.
+- **Analisi Avanzata:** Reportistica costi in roadmap.
 
 ## 3. Requisiti di Business Principali (Target)
 - BR‑1: [ROADMAP] Il sistema deve indicizzare e cercare documenti da almeno tre tipi di sorgente (filesystem, cloud drive, pagine web).
@@ -27,7 +27,7 @@
 - BR‑3: [DONE] Il sistema deve esporre una UI web (admin + query).
 - BR‑4: [DONE] Il sistema deve supportare caricamento documenti via UI/API.
 - BR‑5: [DONE] Il sistema deve supportare indicizzazione automatica e propagazione delle cancellazioni (Watcher).
-- BR‑6: [PARTIAL] Il sistema deve supportare auditabilità e compliance (API Key attiva, RBAC target).
+- BR‑6: [DONE] Il sistema deve supportare auditabilità e compliance (API Key, Basic RBAC).
 
 
 Criteri di successo
@@ -93,7 +93,9 @@ Richieste operative aggiuntive (security/hand‑off)
 8. Roadmap di alto livello e milestone commerciali
 - M3 (Completata): Implementazione UI Completa, Streaming SSE, Ingest worker (PDF/DOCX), Watcher, API Key Auth.
 - M4 (Completata): Stabilization & Release Hardening (consolidamento bootstrap, cleanup repo, DOCX end-to-end, Smoke Test).
-- M5 (Pianificata): Observability & Advanced Query Logging.
+- M5 (Completata): Observability & Query Logging (Logging asincrono, /metrics).
+- M6-A (Completata): Auditability Completion (user_id/kb_ids tracking).
+- M6-B (Completata): Basic RBAC on API Keys (role support).
 
 9. Rischi business
 - Rischio di mancata adozione → mitigare con formazione e POC con utenti reali.
@@ -163,4 +165,4 @@ Roadmap tipica:
 
 ---
 
-Data aggiornamento: 2026-03-03
+Data aggiornamento: 2026-03-12 (Post-M6-B)

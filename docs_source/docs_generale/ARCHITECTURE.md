@@ -11,11 +11,12 @@
 
 - **Vector Store (PG + pgvector):** IMPLEMENTATO.
 - **Orchestrator API (FastAPI):** IMPLEMENTATO.
-- **Auth Middleware (API Key Hash):** IMPLEMENTATO.
+- **Audit Logging (user_id/kb_ids):** IMPLEMENTATO.
+- **Auth Middleware (RBAC base):** IMPLEMENTATO (M6-B).
 - **Watcher / Indexer Service:** IMPLEMENTATO (Polling, supporta PDF/DOCX/TXT/MD/CSV/JSON).
 - **Frontend Web (React/Vite):** IMPLEMENTATO.
 - **Connector Services (Cloud/S3):** [ROADMAP].
-- **Observability (/metrics):** [ROADMAP M5].
+- **Observability (/metrics):** IMPLEMENTATO.
 
 ## 2. Panoramica dell'architettura
 Questo documento descrive l'architettura ad alto livello per il sistema RAG multi‑KB.
@@ -55,7 +56,7 @@ Questa sezione integra la panoramica con i componenti e i flussi necessari per l
 - **LLM Generator**: componente per answer synthesis (RAG completa) sopra al retrieval; usa prompt orchestration e policy di grounding.
 - **Response Router / Templates**: layer che seleziona template e schema di output (`summary`, `table`, `checklist`, `extract-json`) e valida JSON quando richiesto.
 - **PDF Page Parser**: pipeline di parsing che preserva metadata pagina/sezione per citazioni “serie”.
-- **Auth Middleware**: Autenticazione tramite Header `X-API-Key` con validazione hash su DB.
+- **Auth Middleware**: Autenticazione tramite Header `X-API-Key` con validazione hash su DB e supporto RBAC (`user`, `admin`).
 - **Observability stack**: logging strutturato, metriche e tracing con `request_id`.
 - **Evaluation harness (offline)**: pipeline separata per eseguire benchmark e regressioni su retrieval/RAG.
 - **Connector services (roadmap)**: moduli con scheduler/queue per ingest e sync incrementale da SharePoint/S3/Drive/SAP/Salesforce.
@@ -91,4 +92,4 @@ Questa sezione integra la panoramica con i componenti e i flussi necessari per l
 
 ---
 
-Data aggiornamento: 2026-03-03
+Data aggiornamento: 2026-03-12 (Post M6-B)
