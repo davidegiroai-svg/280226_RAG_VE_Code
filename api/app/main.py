@@ -15,7 +15,7 @@ from .db import test_connection, get_db_cursor
 from .query import build_query_sql, parse_results, execute_search
 from .embedding import embed_text
 from .llm import synthesize_answer
-from .auth import require_api_key
+from .auth import require_api_key, require_admin_key
 from .metadata_extractor import extract_metadata_for_file, save_sidecar_meta
 
 logger = logging.getLogger(__name__)
@@ -499,7 +499,7 @@ def list_documents(
 def upload_files(
     kb: Optional[str] = Query(None),
     files: List[UploadFile] = File(...),
-    _auth=Depends(require_api_key),
+    _auth=Depends(require_admin_key),
 ):
     """Carica uno o piu' file nella knowledge base specificata."""
     # Validazione kb
@@ -579,7 +579,7 @@ def upload_files(
 
 
 @app.get("/metrics")
-def get_metrics(_auth=Depends(require_api_key)):
+def get_metrics(_auth=Depends(require_admin_key)):
     """Metriche operative essenziali. Lettura da tabelle esistenti, nessuna dipendenza esterna."""
     try:
         with get_db_cursor() as cursor:

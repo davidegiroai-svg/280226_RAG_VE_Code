@@ -412,3 +412,83 @@ class TestManageKeys:
         assert "key_hash" not in output_str.lower()
         # Il nome deve apparire
         assert "frontend" in output_str
+
+
+# ─────────────────────────────────────────────────────────
+# M6-B TDD RED: require_admin_key() e endpoint admin-only
+# ─────────────────────────────────────────────────────────
+
+class TestRequireAdminKey:
+    """TDD RED: questi test falliscono finché require_admin_key() non è implementato in auth.py."""
+
+    def test_passa_se_role_admin(self, monkeypatch):
+        """require_admin_key() con key role='admin' → restituisce il nome della key."""
+        from app.auth import require_admin_key  # ImportError se non ancora implementato
+        monkeypatch.setenv("AUTH_ENABLED", "true")
+        ctx, _ = _mock_cursor(row={"id": "uuid-abc", "name": "admin-key", "role": "admin"})
+
+        with patch("app.auth.get_db_cursor", return_value=ctx):
+            result = require_admin_key(x_api_key="qualsiasi-raw-key")
+
+        assert result == "admin-key"
+
+    def test_403_se_role_user(self, monkeypatch):
+        """require_admin_key() con key role='user' → 403 Forbidden."""
+        from app.auth import require_admin_key
+        from fastapi import HTTPException as _HTTPException
+        monkeypatch.setenv("AUTH_ENABLED", "true")
+        ctx, _ = _mock_cursor(row={"id": "uuid-abc", "name": "user-key", "role": "user"})
+
+        with patch("app.auth.get_db_cursor", return_value=ctx):
+            with pytest.raises(_HTTPException) as exc_info:
+                require_admin_key(x_api_key="qualsiasi-raw-key")
+
+        assert exc_info.value.status_code == 403
+
+    def test_401_senza_header(self, monkeypatch):
+        """require_admin_key() senza header X-API-Key → 401 Unauthorized."""
+        from app.auth import require_admin_key
+        from fastapi import HTTPException as _HTTPException
+        monkeypatch.setenv("AUTH_ENABLED", "true")
+
+        with pytest.raises(_HTTPException) as exc_info:
+            require_admin_key(x_api_key=None)
+
+        assert exc_info.value.status_code == 401
+
+
+class TestEndpointAdminOnly:
+    """TDD RED: /upload e /metrics devono rispondere 403 a key con role='user'."""
+
+    def test_upload_403_con_key_user(self, monkeypatch, tmp_path):
+        """POST /api/v1/upload con key role='user' → 403.
+        RED: attualmente risponde 200 perché require_api_key non controlla il ruolo."""
+        monkeypatch.setenv("AUTH_ENABLED", "true")
+        monkeypatch.setenv("INBOX_ROOT", str(tmp_path))
+
+        auth_ctx, _ = _mock_cursor(row={"id": "key-uuid", "name": "user-key", "role": "user"})
+
+        import io
+        with patch("app.auth.get_db_cursor", return_value=auth_ctx):
+            resp = client.post(
+                "/api/v1/upload?kb=demo",
+                files={"files": ("test.txt", io.BytesIO(b"contenuto test"), "text/plain")},
+                headers={"X-API-Key": "valid-user-key"},
+            )
+
+        assert resp.status_code == 403
+
+    def test_metrics_403_con_key_user(self, monkeypatch):
+        """GET /metrics con key role='user' → 403.
+        RED: attualmente risponde 200 perché require_api_key non controlla il ruolo."""
+        monkeypatch.setenv("AUTH_ENABLED", "true")
+
+        auth_ctx, _ = _mock_cursor(row={"id": "key-uuid", "name": "user-key", "role": "user"})
+
+        with patch("app.auth.get_db_cursor", return_value=auth_ctx):
+            resp = client.get(
+                "/metrics",
+                headers={"X-API-Key": "valid-user-key"},
+            )
+
+        assert resp.status_code == 403

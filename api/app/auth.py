@@ -52,7 +52,7 @@ def verify_api_key(key_hash: str, cursor):
     """
     cursor.execute(
         """
-        SELECT id, name FROM api_keys
+        SELECT id, name, role FROM api_keys
         WHERE key_hash = %s
           AND is_active = TRUE
           AND (expires_at IS NULL OR expires_at > NOW())
@@ -102,6 +102,53 @@ def require_api_key(x_api_key: str = Header(default=None, alias="X-API-Key")):
         raise HTTPException(
             status_code=403,
             detail="API key non valida, revocata o scaduta.",
+        )
+
+    return key_record["name"]
+
+
+def require_admin_key(x_api_key: str = Header(default=None, alias="X-API-Key")):
+    """Dipendenza FastAPI: come require_api_key() ma richiede role='admin'.
+
+    Returns:
+        str: nome della key se auth attiva e ruolo admin
+        None: se AUTH_ENABLED=false
+
+    Raises:
+        HTTPException 401: header X-API-Key mancante
+        HTTPException 403: key invalida, revocata, scaduta o ruolo non admin
+    """
+    # Auth disabilitata in sviluppo
+    if os.environ.get("AUTH_ENABLED", "true").lower() in ("false", "0", "no"):
+        return None
+
+    if not x_api_key:
+        raise HTTPException(
+            status_code=401,
+            detail="Autenticazione richiesta. Inserire l'header X-API-Key.",
+        )
+
+    key_hash = hash_api_key(x_api_key)
+
+    try:
+        with get_db_cursor() as cursor:
+            key_record = verify_api_key(key_hash, cursor)
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail="Errore di sistema durante la verifica dell'autenticazione.",
+        )
+
+    if not key_record:
+        raise HTTPException(
+            status_code=403,
+            detail="API key non valida, revocata o scaduta.",
+        )
+
+    if key_record.get("role") != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Permessi insufficienti. Questa operazione richiede una API key con ruolo admin.",
         )
 
     return key_record["name"]

@@ -35,7 +35,7 @@ def _get_conn():
     )
 
 
-def cmd_create(name: str, expires_at: str = None):
+def cmd_create(name: str, expires_at: str = None, role: str = "user"):
     """Crea una nuova API key e la salva nel DB (solo hash).
 
     Stampa la key raw a schermo — non viene mai più recuperabile.
@@ -43,6 +43,7 @@ def cmd_create(name: str, expires_at: str = None):
     Args:
         name: nome descrittivo per la key (es. "app-frontend")
         expires_at: data scadenza ISO 8601 opzionale (es. "2027-01-01")
+        role: ruolo della key — 'user' (default) o 'admin'
     """
     raw_key = str(uuid.uuid4())
     key_hash = hash_api_key(raw_key)
@@ -53,20 +54,20 @@ def cmd_create(name: str, expires_at: str = None):
             if expires_at:
                 cur.execute(
                     """
-                    INSERT INTO api_keys (key_hash, name, expires_at)
-                    VALUES (%s, %s, %s)
-                    RETURNING id, name, created_at
+                    INSERT INTO api_keys (key_hash, name, role, expires_at)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING id, name, role, created_at
                     """,
-                    (key_hash, name, expires_at),
+                    (key_hash, name, role, expires_at),
                 )
             else:
                 cur.execute(
                     """
-                    INSERT INTO api_keys (key_hash, name)
-                    VALUES (%s, %s)
-                    RETURNING id, name, created_at
+                    INSERT INTO api_keys (key_hash, name, role)
+                    VALUES (%s, %s, %s)
+                    RETURNING id, name, role, created_at
                     """,
-                    (key_hash, name),
+                    (key_hash, name, role),
                 )
             row = cur.fetchone()
         conn.commit()
@@ -78,6 +79,7 @@ def cmd_create(name: str, expires_at: str = None):
     print("=" * 60)
     print(f"ID:         {row['id']}")
     print(f"Nome:       {row['name']}")
+    print(f"Ruolo:      {row.get('role', role)}")
     print(f"Creata il:  {row['created_at']}")
     print(f"Scadenza:   {expires_at or 'Mai'}")
     print(f"\nX-API-Key:  {raw_key}")
@@ -122,7 +124,7 @@ def cmd_list():
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
                 """
-                SELECT id, name, created_at, expires_at, revoked_at, is_active
+                SELECT id, name, role, created_at, expires_at, revoked_at, is_active
                 FROM api_keys
                 ORDER BY created_at DESC
                 """
@@ -135,13 +137,14 @@ def cmd_list():
         print("Nessuna API key nel database.")
         return
 
-    print(f"{'ID':<38} {'Nome':<20} {'Attiva':<7} {'Creata il':<25} {'Scadenza'}")
-    print("-" * 110)
+    print(f"{'ID':<38} {'Nome':<20} {'Ruolo':<7} {'Attiva':<7} {'Creata il':<25} {'Scadenza'}")
+    print("-" * 120)
     for row in rows:
         attiva = "SI" if row["is_active"] else "NO"
         scadenza = str(row["expires_at"])[:19] if row["expires_at"] else "Mai"
         creata = str(row["created_at"])[:19]
-        print(f"{str(row['id']):<38} {row['name']:<20} {attiva:<7} {creata:<25} {scadenza}")
+        ruolo = row.get("role", "user")
+        print(f"{str(row['id']):<38} {row['name']:<20} {ruolo:<7} {attiva:<7} {creata:<25} {scadenza}")
 
 
 def main():
@@ -158,6 +161,12 @@ def main():
         default=None,
         help="Data scadenza ISO 8601 (es. 2027-01-01). Default: nessuna scadenza.",
     )
+    p_create.add_argument(
+        "--role",
+        default="user",
+        choices=["user", "admin"],
+        help="Ruolo della key: 'user' (default) o 'admin'.",
+    )
 
     # Sotto-comando revoke
     p_revoke = subparsers.add_parser("revoke", help="Revoca una API key per ID")
@@ -169,7 +178,7 @@ def main():
     args = parser.parse_args()
 
     if args.command == "create":
-        cmd_create(args.name, expires_at=args.expires_at)
+        cmd_create(args.name, expires_at=args.expires_at, role=args.role)
     elif args.command == "revoke":
         cmd_revoke(args.key_id)
     elif args.command == "list":

@@ -99,14 +99,17 @@ CREATE TABLE IF NOT EXISTS upload_log (
 );
 
 -- Tabella api_keys (auth M3 — hash SHA-256, mai salvare la key raw)
+-- M6-B: aggiunta colonna role (user/admin) con DEFAULT 'user'
 CREATE TABLE IF NOT EXISTS api_keys (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     key_hash    VARCHAR(128) NOT NULL UNIQUE,
     name        VARCHAR(100) NOT NULL,
+    role        VARCHAR(20)  NOT NULL DEFAULT 'user',
     created_at  TIMESTAMPTZ DEFAULT NOW(),
     expires_at  TIMESTAMPTZ NULL,
     revoked_at  TIMESTAMPTZ NULL,
-    is_active   BOOLEAN DEFAULT TRUE
+    is_active   BOOLEAN DEFAULT TRUE,
+    CONSTRAINT chk_api_keys_role CHECK (role IN ('user', 'admin'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
