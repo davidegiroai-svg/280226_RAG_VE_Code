@@ -12,6 +12,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 from typing import Iterable, Tuple, List
 
@@ -104,7 +105,7 @@ def read_docx_file(p: Path) -> str:
     return "\n".join(parts)
 
 
-def chunk_text(text: str, size: int = 3000, overlap: int = 500) -> Iterable[Tuple[int, str]]:
+def chunk_text_legacy(text: str, size: int = 3000, overlap: int = 500) -> Iterable[Tuple[int, str]]:
     text = text.strip()
     if not text:
         return
@@ -123,6 +124,65 @@ def chunk_text(text: str, size: int = 3000, overlap: int = 500) -> Iterable[Tupl
         if end >= n:
             break
         start += step
+
+
+def chunk_text_semantic(
+    text: str,
+    target_size: int = 1500,
+    max_size: int = 2000,
+    overlap_sentences: int = 2,
+) -> List[Tuple[int, str]]:
+    """Chunking semantico: spezza su fine frase, rispetta target_size/max_size.
+
+    Parametri:
+        target_size: dimensione target del chunk in caratteri
+        max_size: dimensione massima assoluta prima di forzare il taglio
+        overlap_sentences: quante frasi dell'ultimo chunk ripetere nel successivo
+    """
+    text = text.strip()
+    if not text:
+        return []
+
+    # Split su fine frase (. ! ? seguiti da spazio o newline)
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    sentences = [s for s in sentences if s.strip()]
+    if not sentences:
+        return []
+
+    chunks: List[Tuple[int, str]] = []
+    current: List[str] = []
+    current_len = 0
+    idx = 0
+
+    for sent in sentences:
+        sent_len = len(sent)
+        if current and current_len + sent_len > max_size:
+            chunks.append((idx, " ".join(current)))
+            idx += 1
+            # Overlap: mantieni ultime N frasi come contesto per il chunk successivo
+            if overlap_sentences and len(current) >= overlap_sentences:
+                current = current[-overlap_sentences:]
+                current_len = sum(len(s) for s in current)
+            else:
+                current = []
+                current_len = 0
+        current.append(sent)
+        current_len += sent_len
+
+    if current:
+        chunks.append((idx, " ".join(current)))
+
+    return chunks
+
+
+# Selettore chunk mode via env CHUNK_MODE=semantic|legacy (default: semantic)
+def chunk_text(text: str, size: int = 3000, overlap: int = 500) -> Iterable[Tuple[int, str]]:
+    """Wrapper: usa chunk_text_semantic o chunk_text_legacy in base a CHUNK_MODE env."""
+    mode = _env("CHUNK_MODE", "semantic")
+    if mode == "legacy":
+        yield from chunk_text_legacy(text, size=size, overlap=overlap)
+    else:
+        yield from chunk_text_semantic(text)
 
 
 def ensure_kb(cur, namespace: str) -> str:
@@ -178,6 +238,10 @@ def insert_chunks(
     # Leggi metadati sidecar se disponibili
     sidecar = read_sidecar_meta(file_path) if file_path is not None else {}
 
+    # Deriva file_type dall'estensione (es. ".pdf" → "pdf")
+    _file_ext = (file_path.suffix.lower().lstrip(".") if file_path is not None
+                 else Path(file_name).suffix.lower().lstrip("."))
+
     # Branch PDF: usa read_pdf_chunks con page_start/page_end come colonne dedicate
     if file_path is not None and file_path.suffix.lower() == ".pdf":
         page_chunks = read_pdf_chunks(file_path)
@@ -196,6 +260,7 @@ def insert_chunks(
             meta = {
                 "source_path": source_path,
                 "file_name": file_name,
+                "file_type": _file_ext,
                 "chunk_index": chunk_index,
                 "page_start": pc["page_start"],
                 "page_end": pc["page_end"],
@@ -235,7 +300,7 @@ def insert_chunks(
 
     inserted = 0
     for (chunk_index, chunk), embedding in zip(chunks_data, embeddings):
-        meta = {"source_path": source_path, "file_name": file_name, "chunk_index": chunk_index, **sidecar}
+        meta = {"source_path": source_path, "file_name": file_name, "file_type": _file_ext, "chunk_index": chunk_index, **sidecar}
         cur.execute(
             """
             INSERT INTO chunks (document_id, kb_id, kb_namespace, chunk_index, testo, metadata, embedding, embedding_model, embedding_dim)
@@ -362,7 +427,7 @@ def read_pdf_chunks(p: Path) -> list:
         if not page_text:
             continue
         page_num = page["metadata"]["page"]
-        for _, sub_text in chunk_text(page_text, size=800, overlap=150):
+        for _, sub_text in chunk_text_legacy(page_text, size=800, overlap=150):
             if sub_text.strip():
                 result.append({
                     "testo": sub_text,

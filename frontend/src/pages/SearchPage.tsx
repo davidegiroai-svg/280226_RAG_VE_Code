@@ -116,9 +116,13 @@ export default function SearchPage() {
   const [messages, setMessages] = useState<UIChatMessage[]>([])
   const [input, setInput] = useState('')
   const [kb, setKb] = useState('')
-  const [topK] = useState(5)
+  const [topK, setTopK] = useState(10)
   const [searchMode] = useState<'vector' | 'fts' | 'hybrid'>('hybrid')
   const [graphEnabled, setGraphEnabled] = useState(false)
+  const [fileType, setFileType] = useState('')
+  const [yearFrom, setYearFrom] = useState('')
+  const [yearTo, setYearTo] = useState('')
+  const [rerank, setRerank] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -149,7 +153,19 @@ export default function SearchPage() {
     let accumulated = ''
     try {
       await searchQueryStream(
-        { query: text, kb: kb || undefined, top_k: topK, search_mode: searchMode, synthesize: true, history, graph_enabled: graphEnabled },
+        {
+          query: text,
+          kb: kb || undefined,
+          top_k: topK,
+          search_mode: searchMode,
+          synthesize: true,
+          history,
+          graph_enabled: graphEnabled,
+          file_type: fileType || undefined,
+          year_from: yearFrom ? Number(yearFrom) : undefined,
+          year_to: yearTo ? Number(yearTo) : undefined,
+          rerank,
+        },
         {
           onSources: (srcs: Source[]) => {
             setMessages(prev => {
@@ -211,7 +227,45 @@ export default function SearchPage() {
         <div className="w-44">
           <KBSelector value={kb} onChange={setKb} allOption="Tutte le KB" />
         </div>
-        <span className="text-xs text-gray-400">hybrid search · top {topK}</span>
+        <label className="flex items-center gap-1.5">
+          <span className="text-xs text-gray-400">Fonti:</span>
+          <input
+            type="range" min={3} max={20} step={1} value={topK}
+            onChange={e => setTopK(Number(e.target.value))}
+            className="w-20 accent-blue-500"
+          />
+          <span className="text-xs text-gray-500 w-4">{topK}</span>
+        </label>
+        <select
+          value={fileType}
+          onChange={e => setFileType(e.target.value)}
+          className="text-xs border border-gray-200 rounded px-1.5 py-1 text-gray-600 bg-white"
+        >
+          <option value="">Tutti i tipi</option>
+          <option value="pdf">PDF</option>
+          <option value="docx">DOCX</option>
+          <option value="txt">TXT</option>
+          <option value="md">MD</option>
+        </select>
+        <label className="flex items-center gap-1 text-xs text-gray-400">
+          Anno
+          <input
+            type="number"
+            placeholder="Da"
+            value={yearFrom}
+            onChange={e => setYearFrom(e.target.value)}
+            min={2000} max={2099}
+            className="w-16 border border-gray-200 rounded px-1.5 py-1 text-gray-600 text-xs"
+          />
+          <input
+            type="number"
+            placeholder="A"
+            value={yearTo}
+            onChange={e => setYearTo(e.target.value)}
+            min={2000} max={2099}
+            className="w-16 border border-gray-200 rounded px-1.5 py-1 text-gray-600 text-xs"
+          />
+        </label>
         <label className="flex items-center gap-1.5 cursor-pointer ml-2">
           <input
             type="checkbox"
@@ -220,6 +274,15 @@ export default function SearchPage() {
             className="w-3.5 h-3.5 accent-purple-600"
           />
           <span className="text-xs text-gray-500">GraphRAG</span>
+        </label>
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={rerank}
+            onChange={e => setRerank(e.target.checked)}
+            className="w-3.5 h-3.5 accent-orange-500"
+          />
+          <span className="text-xs text-gray-500">Re-rank</span>
         </label>
         {messages.length > 0 && (
           <button

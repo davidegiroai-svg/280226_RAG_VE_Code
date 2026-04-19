@@ -22,7 +22,10 @@ def build_query_sql(
     query_text: str,
     kb_namespace: Optional[str] = None,
     top_k: int = 5,
-    query_vec: Optional[List[float]] = None
+    query_vec: Optional[List[float]] = None,
+    file_type: Optional[str] = None,
+    year_from: Optional[int] = None,
+    year_to: Optional[int] = None,
 ) -> Tuple[str, List]:
     """Build SQL query for vector similarity search on chunks table.
 
@@ -64,6 +67,18 @@ def build_query_sql(
         sql += " AND kb_namespace = %s"
         params.append(kb_namespace)
 
+    if file_type:
+        sql += " AND metadata->>'file_type' = %s"
+        params.append(file_type)
+
+    if year_from is not None:
+        sql += " AND EXTRACT(YEAR FROM ingest_date) >= %s"
+        params.append(year_from)
+
+    if year_to is not None:
+        sql += " AND EXTRACT(YEAR FROM ingest_date) <= %s"
+        params.append(year_to)
+
     # Order by cosine distance (closest first)
     sql += " ORDER BY distance ASC LIMIT %s"
     params.append(top_k)
@@ -103,6 +118,9 @@ def execute_search(
     top_k: int = 5,
     search_mode: str = "vector",
     query_vec: Optional[List[float]] = None,
+    file_type: Optional[str] = None,
+    year_from: Optional[int] = None,
+    year_to: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
     """Esegue la ricerca in base al search_mode scelto.
 
@@ -124,7 +142,10 @@ def execute_search(
     """
     if search_mode == "fts":
         # Solo full-text search — nessun embedding necessario
-        return fts_search(query_text, cursor, kb_namespace=kb_namespace, top_k=top_k)
+        return fts_search(
+            query_text, cursor, kb_namespace=kb_namespace, top_k=top_k,
+            file_type=file_type, year_from=year_from, year_to=year_to,
+        )
 
     # Calcola embedding se non fornito (serve per vector e hybrid)
     if query_vec is None:
@@ -140,13 +161,17 @@ def execute_search(
             kb_namespace=kb_namespace,
             top_k=candidati,
             query_vec=vec,
+            file_type=file_type,
+            year_from=year_from,
+            year_to=year_to,
         )
         cursor.execute(sql, params)
         vector_rows = cursor.fetchall()
         vector_sources = parse_results(vector_rows)
 
         fts_sources = fts_search(
-            query_text, cursor, kb_namespace=kb_namespace, top_k=candidati
+            query_text, cursor, kb_namespace=kb_namespace, top_k=candidati,
+            file_type=file_type, year_from=year_from, year_to=year_to,
         )
 
         return rrf_merge(vector_sources, fts_sources, top_k=top_k)
@@ -157,6 +182,9 @@ def execute_search(
         kb_namespace=kb_namespace,
         top_k=top_k,
         query_vec=vec,
+        file_type=file_type,
+        year_from=year_from,
+        year_to=year_to,
     )
     cursor.execute(sql, params)
     rows = cursor.fetchall()

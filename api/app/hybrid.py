@@ -13,6 +13,9 @@ def fts_search(
     cursor,
     kb_namespace: Optional[str] = None,
     top_k: int = 20,
+    file_type: Optional[str] = None,
+    year_from: Optional[int] = None,
+    year_to: Optional[int] = None,
 ) -> list[dict]:
     """Ricerca full-text tramite tsvector + ts_rank.
 
@@ -42,6 +45,18 @@ def fts_search(
     if kb_namespace:
         sql += " AND kb_namespace = %s"
         params.append(kb_namespace)
+
+    if file_type:
+        sql += " AND metadata->>'file_type' = %s"
+        params.append(file_type)
+
+    if year_from is not None:
+        sql += " AND EXTRACT(YEAR FROM ingest_date) >= %s"
+        params.append(year_from)
+
+    if year_to is not None:
+        sql += " AND EXTRACT(YEAR FROM ingest_date) <= %s"
+        params.append(year_to)
 
     sql += " ORDER BY rank DESC LIMIT %s"
     params.append(top_k)

@@ -11,6 +11,10 @@ export interface QueryRequest {
   search_mode?: 'vector' | 'fts' | 'hybrid'
   history?: ChatMessage[]
   graph_enabled?: boolean
+  file_type?: string
+  year_from?: number
+  year_to?: number
+  rerank?: boolean
 }
 
 export interface RelatedEntity {

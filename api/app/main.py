@@ -18,6 +18,7 @@ from .llm import synthesize_answer
 from .auth import require_api_key, require_admin_key
 from .metadata_extractor import extract_metadata_for_file, save_sidecar_meta
 from .graph_query import enrich_sources
+from .reranker import rerank_with_llm
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,10 @@ class QueryRequest(BaseModel):
     search_mode: str = Field("vector", description="Modalità ricerca: vector, fts, hybrid")
     history: Optional[List[ChatMessage]] = Field(None, description="Storia della conversazione precedente")
     graph_enabled: Optional[bool] = Field(False, description="Se True, arricchisce i risultati con il grafo entità")
+    file_type: Optional[str] = Field(None, description="Filtra per tipo file: pdf, docx, txt, md, csv, json")
+    year_from: Optional[int] = Field(None, description="Filtra chunk con ingest_date >= anno specificato")
+    year_to: Optional[int] = Field(None, description="Filtra chunk con ingest_date <= anno specificato")
+    rerank: Optional[bool] = Field(False, description="Se True, usa LLM per re-ranking post-retrieval")
 
 class Source(BaseModel):
     id: str
@@ -194,15 +199,29 @@ def query_api(request: QueryRequest, _auth=Depends(require_api_key)):
         if request.search_mode != "fts":
             query_vec, _model_name, _dim = embed_text(request.query)
 
+        # Se rerank: recupera top_k*3 candidati per poi ri-classificare
+        retrieval_k = request.top_k * 3 if request.rerank else request.top_k
+
         with get_db_cursor() as cursor:
             sources = execute_search(
                 query_text=request.query,
                 cursor=cursor,
                 kb_namespace=request.kb,
-                top_k=request.top_k,
+                top_k=retrieval_k,
                 search_mode=request.search_mode,
                 query_vec=query_vec,
+                file_type=request.file_type,
+                year_from=request.year_from,
+                year_to=request.year_to,
             )
+
+        # Re-ranking LLM opzionale
+        if request.rerank and sources:
+            try:
+                sources = rerank_with_llm(request.query, sources, top_k=request.top_k)
+            except Exception as e:
+                logger.warning("rerank failed, using original order: %s", e)
+                sources = sources[:request.top_k]
 
         # M7 GraphRAG: arricchimento opzionale con grafo entità
         if request.graph_enabled and sources:
@@ -284,15 +303,28 @@ def query_stream(request: QueryRequest, _auth=Depends(require_api_key)):
         if request.search_mode != "fts":
             query_vec, _m, _d = embed_text(request.query)
 
+        retrieval_k = request.top_k * 3 if request.rerank else request.top_k
+
         with get_db_cursor() as cursor:
             sources = execute_search(
                 query_text=request.query,
                 cursor=cursor,
                 kb_namespace=request.kb,
-                top_k=request.top_k,
+                top_k=retrieval_k,
                 search_mode=request.search_mode,
                 query_vec=query_vec,
+                file_type=request.file_type,
+                year_from=request.year_from,
+                year_to=request.year_to,
             )
+
+        # Re-ranking LLM opzionale
+        if request.rerank and sources:
+            try:
+                sources = rerank_with_llm(request.query, sources, top_k=request.top_k)
+            except Exception as e:
+                logger.warning("rerank (stream) failed: %s", e)
+                sources = sources[:request.top_k]
 
         # M7 GraphRAG: arricchimento opzionale con grafo entità
         if request.graph_enabled and sources:

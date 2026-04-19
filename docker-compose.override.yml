@@ -1,0 +1,5 @@
+services:
+  api:
+    environment:
+      OLLAMA_LLM_MODEL: "qwen3-next-cloud:latest"
+      LLM_TIMEOUT_S: "60"
