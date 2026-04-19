@@ -37,6 +37,8 @@ services:
       OLLAMA_LLM_MODEL: "${OLLAMA_LLM_MODEL:-llama3.2}"
       LLM_TIMEOUT_S: "${LLM_TIMEOUT_S:-600}"
       AUTH_ENABLED: "${AUTH_ENABLED:-true}"
+      ENTITY_EXTRACTION_ENABLED: "${ENTITY_EXTRACTION_ENABLED:-true}"
+      ENTITY_EXTRACTION_TIMEOUT_S: "${ENTITY_EXTRACTION_TIMEOUT_S:-120}"
     volumes:
       - ./tests:/app/tests:ro
       - ./data:/data:rw
@@ -60,6 +62,8 @@ services:
       EMBEDDING_DIM: "${EMBEDDING_DIM:-768}"
       OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://host.docker.internal:11434}"
       EMBEDDING_TIMEOUT_S: "${EMBEDDING_TIMEOUT_S:-30}"
+      ENTITY_EXTRACTION_ENABLED: "${ENTITY_EXTRACTION_ENABLED:-true}"
+      ENTITY_EXTRACTION_TIMEOUT_S: "${ENTITY_EXTRACTION_TIMEOUT_S:-120}"
     volumes:
       - ./data:/data:ro
     entrypoint: ["python", "-m", "app.ingest_fs"]

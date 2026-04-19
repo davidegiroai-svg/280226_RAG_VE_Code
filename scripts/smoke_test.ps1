@@ -9,9 +9,11 @@
 # Exit code: 0 = tutti i check passati | 1 = almeno un check fallito
 #
 # Endpoint testati:
-#   GET /health        - API raggiungibile + DB connesso (nessuna auth)
-#   GET /health/ready  - DB + estensione vector presente (nessuna auth)
-#   GET /api/v1/kbs    - Auth valida + DB query funzionante
+#   GET /health                          - API raggiungibile + DB connesso (nessuna auth)
+#   GET /health/ready                    - DB + estensione vector presente (nessuna auth)
+#   GET /api/v1/kbs                      - Auth valida + DB query funzionante
+#   GET /api/v1/graph/traverse           - GraphRAG traversal endpoint (M7)
+#   GET /api/v1/graph/entities           - GraphRAG entities endpoint (M7)
 #
 # Nota: POST /api/v1/query NON incluso - richiede Ollama per embedding.
 
@@ -78,7 +80,7 @@ Write-Host ""
 $authHeaders = @{ "X-API-Key" = $apiKey }
 
 # CHECK 1: GET /health
-Write-Host "Check 1/3 - /health (API + DB)"
+Write-Host "Check 1/5 - /health (API + DB)"
 $r = Invoke-Check "$BASE_URL/health"
 if ($r.StatusCode -eq 200 -and $r.Body.status -eq "ok") {
     Show-Result $true "/health risponde 200 con status=ok"
@@ -90,7 +92,7 @@ if ($r.StatusCode -eq 200 -and $r.Body.status -eq "ok") {
 
 # CHECK 2: GET /health/ready
 Write-Host ""
-Write-Host "Check 2/3 - /health/ready (DB + vector extension)"
+Write-Host "Check 2/5 - /health/ready (DB + vector extension)"
 $r = Invoke-Check "$BASE_URL/health/ready"
 if ($r.StatusCode -eq 200 -and $r.Body.vector -eq "ok") {
     Show-Result $true "/health/ready risponde 200 con vector=ok"
@@ -102,7 +104,7 @@ if ($r.StatusCode -eq 200 -and $r.Body.vector -eq "ok") {
 
 # CHECK 3: GET /api/v1/kbs (autenticato)
 Write-Host ""
-Write-Host "Check 3/3 - /api/v1/kbs (autenticazione + DB)"
+Write-Host "Check 3/5 - /api/v1/kbs (autenticazione + DB)"
 $r = Invoke-Check "$BASE_URL/api/v1/kbs" $authHeaders
 if ($r.StatusCode -eq 200 -and $null -ne $r.Body.kbs) {
     $n = $r.Body.kbs.Count
@@ -121,11 +123,35 @@ if ($r.StatusCode -eq 200 -and $null -ne $r.Body.kbs) {
     $allPassed = $false
 }
 
+# CHECK 4: GET /api/v1/graph/traverse (GraphRAG endpoint health)
+Write-Host ""
+Write-Host "Check 4/5 - /api/v1/graph/traverse (GraphRAG)"
+$r4 = Invoke-Check "$BASE_URL/api/v1/graph/traverse?entity_name=FESR&depth=1" $authHeaders
+if ($r4.StatusCode -eq 200 -and $null -ne $r4.Body.related_entities) {
+    Show-Result $true "/api/v1/graph/traverse risponde 200"
+} else {
+    $detail = if ($r4.Error) { $r4.Error } else { "status=$($r4.StatusCode)" }
+    Show-Result $false "/api/v1/graph/traverse non risponde correttamente" $detail
+    $allPassed = $false
+}
+
+# CHECK 5: GET /api/v1/graph/entities con doc_id nullo → 200 lista vuota
+Write-Host ""
+Write-Host "Check 5/5 - /api/v1/graph/entities (GraphRAG)"
+$r5 = Invoke-Check "$BASE_URL/api/v1/graph/entities?doc_id=00000000-0000-0000-0000-000000000000" $authHeaders
+if ($r5.StatusCode -eq 200 -and $null -ne $r5.Body.entities) {
+    Show-Result $true "/api/v1/graph/entities risponde 200"
+} else {
+    $detail = if ($r5.Error) { $r5.Error } else { "status=$($r5.StatusCode)" }
+    Show-Result $false "/api/v1/graph/entities non risponde correttamente" $detail
+    $allPassed = $false
+}
+
 # Riepilogo finale
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
 if ($allPassed) {
-    Write-Host "  RISULTATO: PASS - sistema operativo" -ForegroundColor Green
+    Write-Host "  RISULTATO: PASS (5/5) - sistema operativo" -ForegroundColor Green
     Write-Host "============================================" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  Frontend disponibile su: http://localhost:3000" -ForegroundColor White

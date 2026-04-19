@@ -10,6 +10,20 @@ export interface QueryRequest {
   synthesize?: boolean
   search_mode?: 'vector' | 'fts' | 'hybrid'
   history?: ChatMessage[]
+  graph_enabled?: boolean
+}
+
+export interface RelatedEntity {
+  entity_type: string
+  display_name: string
+  canonical: string
+}
+
+export interface RelatedDoc {
+  doc_id: string
+  source_uri?: string
+  titolo?: string
+  shared_entities?: string[]
 }
 
 export interface Source {
@@ -18,6 +32,8 @@ export interface Source {
   kb_namespace: string
   source_path?: string
   excerpt: string
+  related_entities?: RelatedEntity[]
+  related_docs?: RelatedDoc[]
 }
 
 export interface QueryResponse {

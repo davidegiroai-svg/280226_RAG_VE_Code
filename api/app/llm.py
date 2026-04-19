@@ -129,6 +129,15 @@ def _build_context(chunks: List[Dict[str, Any]]) -> str:
         if meta.get("ambiti"):
             header_parts.append(f"AMBITI: {' · '.join(meta['ambiti'])}")
 
+        # M7 GraphRAG: aggiunge ENTITÀ estratte dal grafo (se presenti)
+        related_entities = chunk.get("related_entities") or []
+        if related_entities:
+            entity_parts = [
+                f"{e['entity_type']}={e['display_name']}"
+                for e in related_entities[:5]
+            ]
+            header_parts.append(f"ENTITÀ: {' · '.join(entity_parts)}")
+
         meta_header = ""
         if header_parts:
             meta_header = "[" + " | ".join(header_parts) + "]\n"

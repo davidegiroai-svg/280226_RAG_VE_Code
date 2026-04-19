@@ -17,6 +17,7 @@ from .embedding import embed_text
 from .llm import synthesize_answer
 from .auth import require_api_key, require_admin_key
 from .metadata_extractor import extract_metadata_for_file, save_sidecar_meta
+from .graph_query import enrich_sources
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,7 @@ class QueryRequest(BaseModel):
     synthesize: bool = Field(False, description="Se True, genera risposta sintetica via LLM")
     search_mode: str = Field("vector", description="Modalità ricerca: vector, fts, hybrid")
     history: Optional[List[ChatMessage]] = Field(None, description="Storia della conversazione precedente")
+    graph_enabled: Optional[bool] = Field(False, description="Se True, arricchisce i risultati con il grafo entità")
 
 class Source(BaseModel):
     id: str
@@ -88,6 +90,8 @@ class Source(BaseModel):
     source_path: Optional[str] = None
     excerpt: str
     doc_metadata: Optional[dict] = None
+    related_entities: Optional[list] = None
+    related_docs: Optional[list] = None
 
 class QueryResponse(BaseModel):
     answer: str
@@ -200,6 +204,14 @@ def query_api(request: QueryRequest, _auth=Depends(require_api_key)):
                 query_vec=query_vec,
             )
 
+        # M7 GraphRAG: arricchimento opzionale con grafo entità
+        if request.graph_enabled and sources:
+            try:
+                with get_db_cursor() as graph_cursor:
+                    sources = enrich_sources(graph_cursor, sources, depth=2)
+            except Exception as e:
+                logger.warning("graph enrichment failed: %s", e)
+
         # Sintesi LLM opzionale (synthesize=True)
         answer = None
         if request.synthesize and sources:
@@ -281,6 +293,15 @@ def query_stream(request: QueryRequest, _auth=Depends(require_api_key)):
                 search_mode=request.search_mode,
                 query_vec=query_vec,
             )
+
+        # M7 GraphRAG: arricchimento opzionale con grafo entità
+        if request.graph_enabled and sources:
+            try:
+                with get_db_cursor() as graph_cursor:
+                    sources = enrich_sources(graph_cursor, sources, depth=2)
+            except Exception as e:
+                logger.warning("graph enrichment (stream) failed: %s", e)
+
         retrieval_ms = int((time.perf_counter() - t0) * 1000)
     except HTTPException:
         raise
@@ -607,4 +628,90 @@ def get_metrics(_auth=Depends(require_admin_key)):
         raise HTTPException(
             status_code=500,
             detail=f"Errore interno durante il recupero delle metriche: {str(e)}"
+        )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# M7 GraphRAG — endpoint grafo entità
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/v1/graph/entities")
+def graph_entities(
+    doc_id: str = Query(..., description="UUID del documento"),
+    _auth=Depends(require_api_key),
+):
+    """Ritorna tutte le entità estratte per un documento.
+
+    Args:
+        doc_id: UUID del documento (recuperabile da GET /api/v1/documents)
+
+    Returns:
+        {"doc_id": "...", "entities": [{id, entity_type, canonical, display_name, ...}]}
+    """
+    try:
+        from .graph_query import get_document_entities  # già importato a livello modulo via enrich_sources
+        with get_db_cursor() as cursor:
+            entities = get_document_entities(cursor, [doc_id])
+        return {"doc_id": doc_id, "entities": entities}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Errore interno durante il recupero delle entità: {str(e)}"
+        )
+
+
+@app.get("/api/v1/graph/traverse")
+def graph_traverse(
+    entity_name: str = Query(..., description="Nome entità da cui partire (ricerca ILIKE)"),
+    depth: int = Query(2, ge=1, le=5, description="Profondità traversal (1-5)"),
+    _auth=Depends(require_api_key),
+):
+    """Traversa il grafo entità da un'entità nominata.
+
+    Cerca l'entità per nome (case-insensitive ILIKE su canonical),
+    poi attraversa il grafo fino a `depth` hop.
+
+    Returns:
+        {"seed_entity": {...}, "related_entities": [...], "depth": N}
+    """
+    try:
+        from .graph_query import traverse_related  # già importato via enrich_sources
+        with get_db_cursor() as cursor:
+            # Risolvi nome → entity_id(s)
+            cursor.execute(
+                """
+                SELECT id::text, entity_type, canonical, display_name
+                FROM entities
+                WHERE canonical ILIKE %s
+                LIMIT 10
+                """,
+                (f"%{entity_name.strip().lower()}%",),
+            )
+            seeds = cursor.fetchall()
+            if not seeds:
+                return {"seed_entity": None, "related_entities": [], "depth": depth}
+
+            # seeds può essere RealDictCursor o tuple
+            if hasattr(seeds[0], "keys"):
+                seeds = [dict(s) for s in seeds]
+            else:
+                cols = ["id", "entity_type", "canonical", "display_name"]
+                seeds = [dict(zip(cols, s)) for s in seeds]
+
+            seed_ids = [s["id"] for s in seeds]
+            related = traverse_related(cursor, seed_ids, depth=depth)
+
+        return {
+            "seed_entity": seeds[0],
+            "related_entities": related,
+            "depth": depth,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Errore interno durante il traversal del grafo: {str(e)}"
         )

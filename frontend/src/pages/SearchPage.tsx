@@ -53,6 +53,21 @@ function SourcesPanel({ sources }: { sources: Source[] }) {
                 <ScoreBadge score={src.score} />
               </div>
               <p className="text-gray-700 leading-relaxed line-clamp-3">{src.excerpt}</p>
+              {src.related_entities && src.related_entities.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {src.related_entities.slice(0, 5).map(e => (
+                    <span key={e.canonical}
+                      className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 rounded px-1 py-0.5">
+                      {e.entity_type}: {e.display_name}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {src.related_docs && src.related_docs.length > 0 && (
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Doc correlati: {src.related_docs.slice(0, 3).map(d => d.titolo || d.doc_id).join(' · ')}
+                </p>
+              )}
             </div>
           ))}
         </div>
@@ -103,6 +118,7 @@ export default function SearchPage() {
   const [kb, setKb] = useState('')
   const [topK] = useState(5)
   const [searchMode] = useState<'vector' | 'fts' | 'hybrid'>('hybrid')
+  const [graphEnabled, setGraphEnabled] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -133,7 +149,7 @@ export default function SearchPage() {
     let accumulated = ''
     try {
       await searchQueryStream(
-        { query: text, kb: kb || undefined, top_k: topK, search_mode: searchMode, synthesize: true, history },
+        { query: text, kb: kb || undefined, top_k: topK, search_mode: searchMode, synthesize: true, history, graph_enabled: graphEnabled },
         {
           onSources: (srcs: Source[]) => {
             setMessages(prev => {
@@ -196,6 +212,15 @@ export default function SearchPage() {
           <KBSelector value={kb} onChange={setKb} allOption="Tutte le KB" />
         </div>
         <span className="text-xs text-gray-400">hybrid search · top {topK}</span>
+        <label className="flex items-center gap-1.5 cursor-pointer ml-2">
+          <input
+            type="checkbox"
+            checked={graphEnabled}
+            onChange={e => setGraphEnabled(e.target.checked)}
+            className="w-3.5 h-3.5 accent-purple-600"
+          />
+          <span className="text-xs text-gray-500">GraphRAG</span>
+        </label>
         {messages.length > 0 && (
           <button
             onClick={handleReset}

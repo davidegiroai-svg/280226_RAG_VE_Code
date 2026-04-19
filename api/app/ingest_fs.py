@@ -19,6 +19,7 @@ import psycopg2
 from psycopg2.extras import Json
 
 from app.embedding import embed_texts, EmbeddingError
+from app.entity_extractor import extract_and_save as _graph_extract_and_save
 
 
 def _env(name: str, default: str) -> str:
@@ -324,6 +325,16 @@ def ingest_single_file(file_path: Path, kb_namespace: str) -> dict:
             # Transizione stato: done
             update_ingest_status(cur, doc_id, "done")
 
+            # M7 GraphRAG: estrazione entità (best-effort, non blocca mai l'ingest)
+            _extraction_text = text
+            if is_pdf:
+                try:
+                    _pdf_pages = read_pdf_chunks(file_path)
+                    _extraction_text = " ".join(pc["testo"] for pc in _pdf_pages)
+                except Exception:
+                    _extraction_text = ""
+            _graph_extract_and_save(cur, doc_id, kb_id, _extraction_text)
+
         conn.commit()
         return {"doc_id": doc_id, "is_new": True, "chunks_inserted": chunks_inserted, "status": "done"}
 
@@ -451,6 +462,16 @@ def main():
                     file_path=fp,
                 )
                 chunks_inserted += n
+
+                # M7 GraphRAG: estrazione entità (best-effort, non blocca mai l'ingest)
+                _extraction_text = text
+                if is_pdf:
+                    try:
+                        _pdf_pages = read_pdf_chunks(fp)
+                        _extraction_text = " ".join(pc["testo"] for pc in _pdf_pages)
+                    except Exception:
+                        _extraction_text = ""
+                _graph_extract_and_save(cur, doc_id, kb_id, _extraction_text)
             conn.commit()
             print(f"  OK {fp.name}: {n} chunks")
         except Exception as e:

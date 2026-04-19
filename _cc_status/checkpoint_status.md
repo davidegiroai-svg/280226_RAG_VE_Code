@@ -1,5 +1,90 @@
 # Checkpoint Status
 
+**Checkpoint updated:** 2026-04-19 by POST-M7-GRAPHRAG
+
+## TASK POST-M7 — Backfill entità, Frontend GraphRAG, Smoke test 5/5
+**Status:** DONE
+**Timestamp:** 2026-04-19
+
+**File creati:**
+- `api/app/backfill_entities.py` — script CLI per estrarre entità dai documenti già ingestiti (pre-M7)
+- `tests/test_backfill_entities.py` — 3 test TDD per il backfill
+
+**File modificati:**
+- `frontend/src/types.ts` — aggiunto `graph_enabled?: boolean` a QueryRequest; nuove interfacce `RelatedEntity` e `RelatedDoc`; `related_entities` e `related_docs` in Source
+- `frontend/src/pages/SearchPage.tsx` — stato `graphEnabled`, toggle checkbox GraphRAG nella barra impostazioni, display entità (badge viola) e doc correlati per ogni source
+- `scripts/smoke_test.ps1` — aggiornato da 3/3 a 5/5 check: aggiunti Check 4 (graph/traverse) e Check 5 (graph/entities)
+
+**Cosa è stato implementato:**
+- `backfill_entities.py`: legge tutti i documenti non eliminati dal DB, ricostruisce il testo dai chunk esistenti (`chunks.testo ORDER BY chunk_index`) e chiama `extract_and_save` (idempotente, ON CONFLICT DO NOTHING). Supporta flag `--kb <namespace>` per processare un singolo KB.
+- Frontend: toggle "GraphRAG" nella barra ricerca; se attivo invia `graph_enabled: true` nell'API call e mostra entità correlate come pill colorati e doc correlati come testo sotto ogni fonte.
+- Smoke test aggiornato: verifica 5 endpoint chiave inclusi i due endpoint grafo M7.
+
+**Conteggio test:**
+- Prima: 203 test (M7-GraphRAG)
+- Dopo: **206 test** (+3 test_backfill_entities)
+
+**Comando di verifica:**
+```powershell
+# Test suite
+docker compose exec api pytest tests/ -v
+# Backfill entità
+docker compose exec api python -m app.backfill_entities
+# Smoke test
+.\scripts\smoke_test.ps1
+```
+
+**Output atteso:**
+- `206 passed` nella suite pytest
+- Log backfill: `Backfill: N documenti da processare` → `[namespace] doc_id — OK` per ogni doc
+- Smoke test: `RISULTATO: PASS (5/5) - sistema operativo`
+
+---
+
+**Checkpoint updated:** 2026-04-18 by M7-GRAPHRAG
+
+## TASK M7-GraphRAG — Graph Entity Relationship Layer
+**Status:** DONE
+**Timestamp:** 2026-04-18
+**File creati:**
+- `scripts/migration_m7_graph.sql` — DDL: tabelle `entities` + `entity_relations`, indici GIN/btree, trigger tsvector
+- `api/app/entity_extractor.py` — estrazione entità via Ollama LLM, normalizzazione, persistenza su DB (best-effort, mai raise)
+- `api/app/graph_query.py` — traversal grafo via recursive CTE PostgreSQL, `enrich_sources()` per arricchimento risultati query
+- `tests/test_entity_extractor.py` — 27 test TDD
+- `tests/test_graph_query.py` — 12 test TDD
+- `tests/test_graph_api.py` — 12 test TDD
+
+**File modificati:**
+- `scripts/db_init.sql` — DDL M7 aggiunto in fondo (fresh install)
+- `api/app/ingest_fs.py` — hook `_graph_extract_and_save` in `ingest_single_file()` e `main()` (dentro `with conn.cursor()`)
+- `api/app/main.py` — `QueryRequest.graph_enabled`, `Source.related_entities/related_docs`, endpoint `/api/v1/graph/entities` e `/api/v1/graph/traverse`, import `enrich_sources` a livello modulo
+- `api/app/llm.py` — `_build_context()` aggiunge header `ENTITÀ:` per GraphRAG context
+- `docker-compose.yml` — env vars `ENTITY_EXTRACTION_ENABLED` + `ENTITY_EXTRACTION_TIMEOUT_S` per api e worker
+- `.env.example` — 2 nuove variabili
+
+**Implementato:**
+- Tabella `entities`: tipo, canonical (normalizzato), display_name, metadata jsonb, full-text search tsvector GIN
+- Tabella `entity_relations`: from/to con peso, UNIQUE per (doc_id, from, to, relation)
+- Tipi entità: fonte, programma, asse, bando, progetto, beneficiario, scadenza, importo
+- Relazioni: finanziato_da, appartiene_a, asse, risponde_a, gestito_da
+- Estrazione best-effort durante ingest (Ollama JSON structured output, gate ENTITY_EXTRACTION_ENABLED)
+- Graph traversal via recursive CTE, depth cap=5, forward+backward traversal
+- `graph_enabled=true` in POST /query arricchisce ogni source con related_entities e related_docs
+- Header ENTITÀ nel context LLM per grounding migliorato
+- Graceful degradation completa: extraction/enrichment failure mai propaga
+
+**Conteggio test:**
+- Prima: 141 test (M6-B)
+- Dopo: **203 test** (+62 nuovi)
+
+**DB verificato:**
+```sql
+\dt entities        -- tabella presente
+\dt entity_relations -- tabella presente
+```
+
+---
+
 **Checkpoint updated:** 2026-03-06 by FR-METADATA-SIDECAR
 
 ## TASK FR-METADATA-SIDECAR — Metadata sidecar system + metadatazione documenti
