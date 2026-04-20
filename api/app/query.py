@@ -121,6 +121,7 @@ def execute_search(
     file_type: Optional[str] = None,
     year_from: Optional[int] = None,
     year_to: Optional[int] = None,
+    expanded_queries: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
     """Esegue la ricerca in base al search_mode scelto.
 
@@ -156,6 +157,36 @@ def execute_search(
     if search_mode == "hybrid":
         # Recupera molti candidati per merge + diversity (top_k*5 min 50)
         candidati = max(top_k * 5, 50)
+
+        # Multi-query expansion: se abbiamo piu' varianti, accumula risultati da tutte
+        if expanded_queries and len(expanded_queries) > 1:
+            all_vector = []
+            all_fts = []
+            for variant in expanded_queries:
+                vec_i, _, _ = embed_text(variant)
+                sql_i, params_i = build_query_sql(
+                    query_text=variant,
+                    kb_namespace=kb_namespace,
+                    top_k=candidati,
+                    query_vec=vec_i,
+                    file_type=file_type,
+                    year_from=year_from,
+                    year_to=year_to,
+                )
+                cursor.execute(sql_i, params_i)
+                vector_rows_i = cursor.fetchall()
+                all_vector.extend(parse_results(vector_rows_i))
+
+                fts_i = fts_search(
+                    variant, cursor, kb_namespace=kb_namespace, top_k=candidati,
+                    file_type=file_type, year_from=year_from, year_to=year_to,
+                )
+                all_fts.extend(fts_i)
+
+            merged = rrf_merge(all_vector, all_fts, top_k=candidati)
+            return diversify_sources(merged, top_k=top_k, max_per_doc=2)
+
+        # Percorso standard: singola query
         sql, params = build_query_sql(
             query_text=query_text,
             kb_namespace=kb_namespace,

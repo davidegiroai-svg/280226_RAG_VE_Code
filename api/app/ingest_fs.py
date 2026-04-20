@@ -16,11 +16,15 @@ import re
 from pathlib import Path
 from typing import Iterable, Tuple, List
 
+import logging
+
 import psycopg2
 from psycopg2.extras import Json
 
 from app.embedding import embed_texts, EmbeddingError
 from app.entity_extractor import extract_and_save as _graph_extract_and_save
+
+logger = logging.getLogger(__name__)
 
 
 def _env(name: str, default: str) -> str:
@@ -42,6 +46,30 @@ def sha256_text(text: str) -> str:
     h = hashlib.sha256()
     h.update(text.encode("utf-8", errors="ignore"))
     return h.hexdigest()
+
+
+MAX_PREFIX_LEN = 150
+
+
+def build_context_prefix(
+    kb_namespace: str,
+    titolo: str,
+    file_type: str,
+    tipo_documento: str = "",
+    targets: list | None = None,
+) -> str:
+    """Costruisce prefisso contestuale per embedding (zero LLM cost).
+
+    Formato: "[kb | titolo | tipo | tipo_doc | target1 target2] "
+    Troncato a MAX_PREFIX_LEN per lasciare spazio al testo (MAX_CHARS=2000).
+    """
+    parts = [p for p in [kb_namespace, titolo, file_type] if p]
+    if tipo_documento:
+        parts.append(tipo_documento)
+    if targets:
+        parts.append(" ".join(targets[:3]))
+    prefix = "[" + " | ".join(parts) + "] "
+    return prefix[:MAX_PREFIX_LEN]
 
 
 def read_text_file(p: Path) -> str:
@@ -234,6 +262,7 @@ def insert_chunks(
     text: str,
     *,
     file_path: Path = None,
+    titolo: str = "",
 ) -> int:
     # Leggi metadati sidecar se disponibili
     sidecar = read_sidecar_meta(file_path) if file_path is not None else {}
@@ -242,6 +271,13 @@ def insert_chunks(
     _file_ext = (file_path.suffix.lower().lstrip(".") if file_path is not None
                  else Path(file_name).suffix.lower().lstrip("."))
 
+    # Prefisso contestuale per embedding (testo in DB resta invariato)
+    prefix = build_context_prefix(
+        kb_namespace, titolo, _file_ext,
+        tipo_documento=sidecar.get("tipo_documento", ""),
+        targets=sidecar.get("targets"),
+    )
+
     # Branch PDF: usa read_pdf_chunks con page_start/page_end come colonne dedicate
     if file_path is not None and file_path.suffix.lower() == ".pdf":
         page_chunks = read_pdf_chunks(file_path)
@@ -249,7 +285,7 @@ def insert_chunks(
         if not valid_chunks:
             return 0
 
-        chunk_texts_list = [pc["testo"] for _, pc in valid_chunks]
+        chunk_texts_list = [prefix + pc["testo"] for _, pc in valid_chunks]
         try:
             embeddings, embedding_model, embedding_dim = embed_texts(chunk_texts_list)
         except EmbeddingError as e:
@@ -271,14 +307,14 @@ def insert_chunks(
                 INSERT INTO chunks (
                     document_id, kb_id, kb_namespace, chunk_index, testo,
                     metadata, embedding, embedding_model, embedding_dim,
-                    page_start, page_end, section_title
+                    page_start, page_end, section_title, doc_title
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     doc_id, kb_id, kb_namespace, chunk_index, pc["testo"],
                     Json(meta), vector_to_str(embedding), embedding_model, embedding_dim,
-                    pc["page_start"], pc["page_end"], pc["section_title"],
+                    pc["page_start"], pc["page_end"], pc["section_title"], titolo,
                 ),
             )
             inserted += 1
@@ -292,7 +328,7 @@ def insert_chunks(
     if not chunks_data:
         return 0
 
-    chunk_texts_list = [c[1] for c in chunks_data]
+    chunk_texts_list = [prefix + c[1] for c in chunks_data]
     try:
         embeddings, embedding_model, embedding_dim = embed_texts(chunk_texts_list)
     except EmbeddingError as e:
@@ -303,10 +339,10 @@ def insert_chunks(
         meta = {"source_path": source_path, "file_name": file_name, "file_type": _file_ext, "chunk_index": chunk_index, **sidecar}
         cur.execute(
             """
-            INSERT INTO chunks (document_id, kb_id, kb_namespace, chunk_index, testo, metadata, embedding, embedding_model, embedding_dim)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO chunks (document_id, kb_id, kb_namespace, chunk_index, testo, metadata, embedding, embedding_model, embedding_dim, doc_title)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
-            (doc_id, kb_id, kb_namespace, chunk_index, chunk, Json(meta), vector_to_str(embedding), embedding_model, embedding_dim),
+            (doc_id, kb_id, kb_namespace, chunk_index, chunk, Json(meta), vector_to_str(embedding), embedding_model, embedding_dim, titolo),
         )
         inserted += 1
     return inserted
@@ -324,6 +360,27 @@ def update_ingest_status(cur, doc_id: str, status: str) -> None:
         "UPDATE documents SET ingest_status=%s, updated_at=now() WHERE id=%s",
         (status, doc_id),
     )
+
+
+def _auto_classify(file_path: Path, text_snippet: str) -> None:
+    """Auto-classificazione: se no sidecar, estrai metadati via LLM (best-effort)."""
+    if file_path is None:
+        return
+    if os.getenv("AUTO_CLASSIFY_ENABLED", "false").lower() != "true":
+        return
+    existing_sidecar = read_sidecar_meta(file_path)
+    if existing_sidecar:
+        return
+    try:
+        from app.metadata_extractor import extract_metadata_for_file, save_sidecar_meta
+        model = os.getenv("OLLAMA_LLM_MODEL", "qwen3-next-cloud:latest")
+        timeout = int(os.getenv("METADATA_EXTRACT_TIMEOUT", "120"))
+        extracted = extract_metadata_for_file(file_path, model, text_snippet, timeout=timeout)
+        if extracted.get("tipo_documento"):  # non salvare fallback vuoto
+            save_sidecar_meta(file_path, extracted)
+            logger.info("Auto-classificazione completata per %s", file_path.name)
+    except Exception:
+        pass  # best-effort, non blocca ingest
 
 
 def ingest_single_file(file_path: Path, kb_namespace: str) -> dict:
@@ -382,9 +439,12 @@ def ingest_single_file(file_path: Path, kb_namespace: str) -> dict:
             # Transizione stato: processing
             update_ingest_status(cur, doc_id, "processing")
 
+            # Auto-classificazione: se no sidecar, estrai metadati via LLM
+            _auto_classify(file_path, text)
+
             chunks_inserted = insert_chunks(
                 cur, kb_id, kb_namespace, doc_id, source_path, file_path.name, text,
-                file_path=file_path,
+                file_path=file_path, titolo=file_path.name,
             )
 
             # Transizione stato: done
@@ -522,9 +582,13 @@ def main():
                     continue
 
                 docs_new += 1
+
+                # Auto-classificazione: se no sidecar, estrai metadati via LLM
+                _auto_classify(fp, text)
+
                 n = insert_chunks(
                     cur, kb_id, kb_namespace, doc_id, source_path, fp.name, text,
-                    file_path=fp,
+                    file_path=fp, titolo=titolo,
                 )
                 chunks_inserted += n
 

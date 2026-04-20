@@ -199,6 +199,15 @@ def query_api(request: QueryRequest, _auth=Depends(require_api_key)):
         if request.search_mode != "fts":
             query_vec, _model_name, _dim = embed_text(request.query)
 
+        # Multi-query expansion (solo in hybrid mode con flag attivo)
+        expanded_queries = None
+        if (
+            request.search_mode == "hybrid"
+            and os.getenv("MULTIQUERY_ENABLED", "false").lower() == "true"
+        ):
+            from app.multiquery import expand_query
+            expanded_queries = expand_query(request.query)
+
         # Se rerank: recupera top_k*3 candidati per poi ri-classificare
         retrieval_k = request.top_k * 3 if request.rerank else request.top_k
 
@@ -213,6 +222,7 @@ def query_api(request: QueryRequest, _auth=Depends(require_api_key)):
                 file_type=request.file_type,
                 year_from=request.year_from,
                 year_to=request.year_to,
+                expanded_queries=expanded_queries,
             )
 
         # Re-ranking LLM opzionale
@@ -303,6 +313,15 @@ def query_stream(request: QueryRequest, _auth=Depends(require_api_key)):
         if request.search_mode != "fts":
             query_vec, _m, _d = embed_text(request.query)
 
+        # Multi-query expansion (solo in hybrid mode con flag attivo)
+        expanded_queries = None
+        if (
+            request.search_mode == "hybrid"
+            and os.getenv("MULTIQUERY_ENABLED", "false").lower() == "true"
+        ):
+            from app.multiquery import expand_query
+            expanded_queries = expand_query(request.query)
+
         retrieval_k = request.top_k * 3 if request.rerank else request.top_k
 
         with get_db_cursor() as cursor:
@@ -316,6 +335,7 @@ def query_stream(request: QueryRequest, _auth=Depends(require_api_key)):
                 file_type=request.file_type,
                 year_from=request.year_from,
                 year_to=request.year_to,
+                expanded_queries=expanded_queries,
             )
 
         # Re-ranking LLM opzionale

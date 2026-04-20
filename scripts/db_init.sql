@@ -46,6 +46,7 @@ CREATE TABLE chunks (
     page_start integer,
     page_end integer,
     section_title text,
+    doc_title text,
     ingest_date timestamptz DEFAULT now()
 );
 
@@ -117,10 +118,11 @@ CREATE INDEX IF NOT EXISTS idx_api_keys_active ON api_keys(is_active) WHERE is_a
 
 -- Hybrid search: colonna tsvector precalcolata + indice GIN + trigger (M3)
 ALTER TABLE chunks ADD COLUMN IF NOT EXISTS testo_tsv TSVECTOR;
+ALTER TABLE chunks ADD COLUMN IF NOT EXISTS doc_title text;
 
 -- Popola per chunk gia' esistenti (no-op su fresh install)
 UPDATE chunks
-SET testo_tsv = to_tsvector('italian', COALESCE(testo, ''))
+SET testo_tsv = to_tsvector('italian', COALESCE(doc_title, '') || ' ' || COALESCE(testo, ''))
 WHERE testo_tsv IS NULL AND testo IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_chunks_testo_tsv ON chunks USING GIN(testo_tsv);
@@ -128,7 +130,8 @@ CREATE INDEX IF NOT EXISTS idx_chunks_testo_tsv ON chunks USING GIN(testo_tsv);
 CREATE OR REPLACE FUNCTION chunks_testo_tsv_update()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.testo_tsv := to_tsvector('italian', COALESCE(NEW.testo, ''));
+    NEW.testo_tsv := to_tsvector('italian',
+        COALESCE(NEW.doc_title, '') || ' ' || COALESCE(NEW.testo, ''));
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -136,7 +139,7 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS trig_chunks_testo_tsv ON chunks;
 
 CREATE TRIGGER trig_chunks_testo_tsv
-BEFORE INSERT OR UPDATE OF testo ON chunks
+BEFORE INSERT OR UPDATE OF testo, doc_title ON chunks
 FOR EACH ROW
 EXECUTE FUNCTION chunks_testo_tsv_update();
 
