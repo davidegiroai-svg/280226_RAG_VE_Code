@@ -78,7 +78,7 @@ class ChatMessage(BaseModel):
 class QueryRequest(BaseModel):
     query: str = Field(..., min_length=1, description="Search query text")
     kb: Optional[str] = Field(None, description="Optional KB namespace to filter")
-    top_k: Optional[int] = Field(5, ge=1, le=20, description="Number of results to return (1-20)")
+    top_k: Optional[int] = Field(5, ge=1, le=50, description="Number of results to return (1-50)")
     synthesize: bool = Field(False, description="Se True, genera risposta sintetica via LLM")
     search_mode: str = Field("vector", description="Modalità ricerca: vector, fts, hybrid")
     history: Optional[List[ChatMessage]] = Field(None, description="Storia della conversazione precedente")

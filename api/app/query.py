@@ -154,8 +154,8 @@ def execute_search(
         vec = query_vec
 
     if search_mode == "hybrid":
-        # Recupera più candidati per il merge (top_k*3 da ciascuna lista)
-        candidati = max(top_k * 3, 20)
+        # Recupera molti candidati per merge + diversity (top_k*5 min 50)
+        candidati = max(top_k * 5, 50)
         sql, params = build_query_sql(
             query_text=query_text,
             kb_namespace=kb_namespace,
@@ -174,13 +174,15 @@ def execute_search(
             file_type=file_type, year_from=year_from, year_to=year_to,
         )
 
-        return rrf_merge(vector_sources, fts_sources, top_k=top_k)
+        merged = rrf_merge(vector_sources, fts_sources, top_k=candidati)
+        return diversify_sources(merged, top_k=top_k, max_per_doc=2)
 
-    # Default: solo vector search
+    # Default: solo vector search (con diversification)
+    candidati_vec = max(top_k * 3, 30)
     sql, params = build_query_sql(
         query_text=query_text,
         kb_namespace=kb_namespace,
-        top_k=top_k,
+        top_k=candidati_vec,
         query_vec=vec,
         file_type=file_type,
         year_from=year_from,
@@ -188,7 +190,44 @@ def execute_search(
     )
     cursor.execute(sql, params)
     rows = cursor.fetchall()
-    return parse_results(rows)
+    return diversify_sources(parse_results(rows), top_k=top_k, max_per_doc=2)
+
+
+def diversify_sources(sources: List[Dict], top_k: int, max_per_doc: int = 2) -> List[Dict]:
+    """Source diversity: limita il numero di chunk per documento.
+
+    Evita che un singolo documento domini i risultati restituendo troppi chunk.
+    Scorre i risultati in ordine di score e accetta al massimo max_per_doc chunk
+    per ogni source_path distinto, fino a top_k risultati totali.
+
+    Args:
+        sources: lista ordinata per score (migliore primo)
+        top_k: numero massimo di risultati da restituire
+        max_per_doc: massimo chunk per documento (default: 2)
+
+    Returns:
+        Lista diversificata di al massimo top_k elementi.
+    """
+    seen: Dict[str, int] = {}  # source_path → count
+    result = []
+    excluded = []
+    for src in sources:
+        sp = src.get("source_path") or src.get("kb_namespace", "unknown")
+        count = seen.get(sp, 0)
+        if count < max_per_doc:
+            result.append(src)
+            seen[sp] = count + 1
+        else:
+            excluded.append(src)
+        if len(result) >= top_k:
+            break
+    # Fallback: se non si raggiunge top_k, aggiunge quelli esclusi in ordine di score
+    # (violando max_per_doc solo se strettamente necessario)
+    for src in excluded:
+        if len(result) >= top_k:
+            break
+        result.append(src)
+    return result
 
 
 def log_query(query_text: str, kb_namespace: Optional[str], sources: List[Dict], response_time_ms: int):

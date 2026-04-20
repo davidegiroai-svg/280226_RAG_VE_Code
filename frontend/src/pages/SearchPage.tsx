@@ -230,7 +230,7 @@ export default function SearchPage() {
         <label className="flex items-center gap-1.5">
           <span className="text-xs text-gray-400">Fonti:</span>
           <input
-            type="range" min={3} max={20} step={1} value={topK}
+            type="range" min={3} max={50} step={1} value={topK}
             onChange={e => setTopK(Number(e.target.value))}
             className="w-20 accent-blue-500"
           />
