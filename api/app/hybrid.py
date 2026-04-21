@@ -35,6 +35,7 @@ def fts_search(
             LEFT(testo, 800) AS excerpt,
             metadata->>'source_path' AS source_path,
             metadata AS doc_metadata,
+            doc_title,
             ts_rank(testo_tsv, plainto_tsquery('italian', %s)) AS rank
         FROM chunks
         WHERE testo_tsv IS NOT NULL
@@ -80,6 +81,7 @@ def fts_search(
             "source_path": row.get("source_path"),
             "excerpt": row["excerpt"],
             "doc_metadata": raw_meta,
+            "doc_title": row.get("doc_title") or "",
         })
     return results
 

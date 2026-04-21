@@ -33,3 +33,34 @@ def test_parse_results_doc_metadata_none_se_assente(monkeypatch):
     }]
     results = parse_results(rows)
     assert results[0]["doc_metadata"] == {}
+
+
+def test_parse_results_include_doc_title():
+    """parse_results deve propagare doc_title dal chunk result."""
+    from app.query import parse_results
+    rows = [{
+        "id": "uuid-1",
+        "kb_namespace": "demo",
+        "excerpt": "Testo.",
+        "source_path": "/data/inbox/demo/bando.pdf",
+        "distance": 0.2,
+        "doc_metadata": None,
+        "doc_title": "Bando PMI 2025",
+    }]
+    results = parse_results(rows)
+    assert results[0]["doc_title"] == "Bando PMI 2025"
+
+
+def test_parse_results_doc_title_empty_se_assente():
+    """parse_results restituisce doc_title='' se la colonna è assente o NULL."""
+    from app.query import parse_results
+    rows = [{
+        "id": "uuid-3",
+        "kb_namespace": "demo",
+        "excerpt": "Testo.",
+        "source_path": None,
+        "distance": 0.3,
+        "doc_metadata": None,
+    }]
+    results = parse_results(rows)
+    assert results[0]["doc_title"] == ""

@@ -266,6 +266,8 @@ def insert_chunks(
 ) -> int:
     # Leggi metadati sidecar se disponibili
     sidecar = read_sidecar_meta(file_path) if file_path is not None else {}
+    # Usa titolo leggibile dal sidecar se disponibile (es. "Avviso pubblico PN Inclusione")
+    titolo = sidecar.get("titolo") or titolo
 
     # Deriva file_type dall'estensione (es. ".pdf" → "pdf")
     _file_ext = (file_path.suffix.lower().lstrip(".") if file_path is not None

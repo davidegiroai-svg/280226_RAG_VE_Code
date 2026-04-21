@@ -3,6 +3,7 @@ import os
 import json
 import logging
 import requests
+from pathlib import Path
 from typing import Optional, List, Dict, Any, Generator
 
 logger = logging.getLogger(__name__)
@@ -86,8 +87,12 @@ PROMPT_SISTEMA = (
     "5. COMPLETEZZA SELETTIVA: Estrai SOLO i dati tecnici pertinenti al TARGET richiesto: "
     "importi (€), percentuali, date, scadenze, codici (CUP, CIG, OS). "
     "Ometti i dati tecnici riferiti ad altri target/ambiti.\n\n"
-    "6. CITAZIONI INLINE: Dopo ogni affermazione indica la fonte: [Documento N]. "
-    "Esempio: 'Il contributo massimo è €50.000 [Documento 1].'\n\n"
+    "6. CITAZIONI INLINE: Dopo ogni affermazione cita la fonte come link markdown, "
+    "usando ESATTAMENTE il titolo e il LINK dall'intestazione del documento: "
+    "[Titolo Documento](LINK). "
+    "Se il documento non ha LINK, usa solo [Titolo Documento]. "
+    "Non inventare mai titoli o link. "
+    "Esempio: 'Il contributo massimo è €50.000 [Bando PMI 2025](/api/v1/files/bandi/bando.pdf).'\n\n"
     "7. STRUTTURA: Usa intestazioni Markdown (##) per argomento, "
     "elenchi puntati per requisiti.\n\n"
     "8. RAGIONAMENTO BREVE: Prima di rispondere, identifica in 1-2 frasi "
@@ -142,8 +147,16 @@ def _build_context(chunks: List[Dict[str, Any]]) -> str:
         if header_parts:
             meta_header = "[" + " | ".join(header_parts) + "]\n"
 
+        doc_title = chunk.get("doc_title") or ""
+        kb = chunk.get("kb_namespace", "")
+        filename = Path(fonte).name if fonte and ("/" in fonte or "\\" in fonte) else ""
+        doc_url = f"/api/v1/files/{kb}/{filename}" if kb and filename else ""
+
+        title_part = f": {doc_title}" if doc_title else ""
+        link_part = f" [LINK: {doc_url}]" if doc_url else ""
+
         parti.append(
-            f"--- INIZIO DOCUMENTO {i} (fonte: {fonte}) ---\n"
+            f"--- INIZIO DOCUMENTO {i}{title_part}{link_part} (fonte: {fonte}) ---\n"
             f"{meta_header}"
             f"{excerpt}\n"
             f"--- FINE DOCUMENTO {i} ---"

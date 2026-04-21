@@ -95,6 +95,7 @@ class Source(BaseModel):
     source_path: Optional[str] = None
     excerpt: str
     doc_metadata: Optional[dict] = None
+    doc_title: Optional[str] = None
     related_entities: Optional[list] = None
     related_docs: Optional[list] = None
 
@@ -767,3 +768,19 @@ def graph_traverse(
             status_code=500,
             detail=f"Errore interno durante il traversal del grafo: {str(e)}"
         )
+
+
+@app.get("/api/v1/files/{kb_namespace}/{filename}")
+def serve_file(kb_namespace: str, filename: str, _auth=Depends(require_api_key)):
+    """Serve un file dalla inbox. Protezione path traversal su kb_namespace e filename."""
+    import re
+    from fastapi.responses import FileResponse
+    if not re.match(r'^[a-zA-Z0-9_-]+$', kb_namespace):
+        raise HTTPException(status_code=400, detail="KB namespace non valido")
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Nome file non valido")
+    inbox_root = os.environ.get("INBOX_ROOT", "/data/inbox")
+    path = Path(inbox_root) / kb_namespace / filename
+    if not path.exists() or not path.is_file():
+        raise HTTPException(status_code=404, detail="File non trovato")
+    return FileResponse(str(path))

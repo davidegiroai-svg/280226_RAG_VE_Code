@@ -282,3 +282,38 @@ class TestUpload:
         assert resp.status_code == 200, f"Upload fallito: {resp.text}"
         assert mock_extract.called, "extract_metadata_for_file non \u00e8 stato chiamato"
         assert mock_save.called, "save_sidecar_meta non \u00e8 stato chiamato"
+
+
+# ─────────────────────────────────────────────────────────
+# GET /api/v1/files/{kb_namespace}/{filename}
+# ─────────────────────────────────────────────────────────
+
+class TestServeFile:
+
+    def test_serve_file_404_se_file_non_esiste(self, tmp_path, monkeypatch):
+        """GET /api/v1/files/kb/file deve restituire 404 se il file non esiste."""
+        monkeypatch.setenv("INBOX_ROOT", str(tmp_path))
+        resp = client.get("/api/v1/files/demo/inesistente.pdf")
+        assert resp.status_code == 404
+
+    def test_serve_file_path_traversal_bloccato(self, monkeypatch):
+        """GET /api/v1/files deve bloccare path traversal nel filename."""
+        resp = client.get("/api/v1/files/demo/..%2Fsecret.txt")
+        assert resp.status_code in (400, 404, 422)
+
+    def test_serve_file_kb_namespace_invalido(self, monkeypatch):
+        """GET /api/v1/files deve rifiutare kb_namespace con caratteri non validi."""
+        resp = client.get("/api/v1/files/../../etc/bando.pdf")
+        assert resp.status_code in (400, 404, 422)
+
+    def test_serve_file_200_se_file_esiste(self, tmp_path, monkeypatch):
+        """GET /api/v1/files/kb/file deve restituire 200 + contenuto se il file esiste."""
+        monkeypatch.setenv("INBOX_ROOT", str(tmp_path))
+        kb_dir = tmp_path / "demo"
+        kb_dir.mkdir()
+        test_file = kb_dir / "bando.pdf"
+        test_file.write_bytes(b"%PDF-1.4 test content")
+        resp = client.get("/api/v1/files/demo/bando.pdf")
+        assert resp.status_code == 200
+        assert resp.content == b"%PDF-1.4 test content"
+

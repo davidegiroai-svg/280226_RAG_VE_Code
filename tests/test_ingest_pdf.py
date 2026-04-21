@@ -248,3 +248,80 @@ def test_read_sidecar_meta_ritorna_dict_vuoto_se_json_malformato(tmp_path):
 
     result = read_sidecar_meta(doc)
     assert result == {}
+
+
+# ─────────────────────────────────────────────
+# Test 9: insert_chunks usa titolo dal sidecar per doc_title
+# ─────────────────────────────────────────────
+
+def test_insert_chunks_usa_sidecar_titolo_per_txt(monkeypatch, tmp_path):
+    """insert_chunks deve usare il titolo dal sidecar .meta.json come doc_title (non il filename)."""
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "dummy")
+    monkeypatch.setenv("EMBEDDING_DIM", "768")
+
+    from app.ingest_fs import insert_chunks
+
+    doc = tmp_path / "documento_qualsiasi.txt"
+    doc.write_text("Testo del documento di prova.", encoding="utf-8")
+    # Sidecar con titolo leggibile
+    (tmp_path / "documento_qualsiasi.meta.json").write_text(
+        '{"titolo": "Avviso pubblico PN Inclusione - Linea 3", "targets": ["Famiglie"]}',
+        encoding="utf-8",
+    )
+
+    mock_cur = MagicMock()
+
+    result = insert_chunks(
+        mock_cur, "kb-uuid", "demo", "doc-uuid",
+        str(doc), "documento_qualsiasi.txt",
+        "Testo del documento di prova.",
+        file_path=doc, titolo="documento_qualsiasi.txt",
+    )
+
+    assert result >= 1
+
+    insert_call = next(
+        (c for c in mock_cur.execute.call_args_list if "INSERT INTO chunks" in str(c)),
+        None,
+    )
+    assert insert_call is not None, "INSERT INTO chunks non trovato"
+    # doc_title deve essere il titolo dal sidecar, non il filename
+    params = insert_call[0][1]
+    doc_title_value = params[-1]  # doc_title è l'ultimo parametro
+    assert doc_title_value == "Avviso pubblico PN Inclusione - Linea 3", (
+        f"Atteso titolo dal sidecar, ricevuto: {doc_title_value}"
+    )
+
+
+def test_insert_chunks_usa_filename_se_sidecar_assente(monkeypatch, tmp_path):
+    """insert_chunks usa il filename come doc_title se il sidecar non ha titolo."""
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "dummy")
+    monkeypatch.setenv("EMBEDDING_DIM", "768")
+
+    from app.ingest_fs import insert_chunks
+
+    doc = tmp_path / "bando.txt"
+    doc.write_text("Testo del bando.", encoding="utf-8")
+    # Nessun sidecar
+
+    mock_cur = MagicMock()
+
+    result = insert_chunks(
+        mock_cur, "kb-uuid", "demo", "doc-uuid",
+        str(doc), "bando.txt",
+        "Testo del bando.",
+        file_path=doc, titolo="bando.txt",
+    )
+
+    assert result >= 1
+
+    insert_call = next(
+        (c for c in mock_cur.execute.call_args_list if "INSERT INTO chunks" in str(c)),
+        None,
+    )
+    assert insert_call is not None
+    params = insert_call[0][1]
+    doc_title_value = params[-1]
+    assert doc_title_value == "bando.txt", (
+        f"Senza sidecar, doc_title deve essere il filename. Ricevuto: {doc_title_value}"
+    )

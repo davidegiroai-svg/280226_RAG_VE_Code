@@ -67,9 +67,11 @@ def test_prompt_sistema_contiene_regola_no_allucinazione():
 
 
 def test_prompt_sistema_richiede_citazioni_inline():
-    """PROMPT_SISTEMA deve richiedere citazioni [Documento N] dopo ogni affermazione."""
+    """PROMPT_SISTEMA deve richiedere citazioni link markdown dopo ogni affermazione."""
     from app.llm import PROMPT_SISTEMA
-    assert "Documento N" in PROMPT_SISTEMA
+    p = PROMPT_SISTEMA
+    assert "CITAZIONI INLINE" in p
+    assert "markdown" in p.lower() or "LINK" in p
 
 
 def test_synthesize_answer_usa_build_context():
@@ -186,4 +188,38 @@ def test_build_context_no_header_se_metadata_assente():
     ctx = _build_context(chunks)
     assert "TIPO:" not in ctx
     assert "TARGET:" not in ctx
+    assert "--- INIZIO DOCUMENTO 1" in ctx
+
+
+def test_build_context_usa_doc_title():
+    """_build_context deve includere doc_title nel delimiter."""
+    from app.llm import _build_context
+    chunks = [{
+        "excerpt": "Testo.",
+        "source_path": "/data/inbox/demo/bando.pdf",
+        "kb_namespace": "demo",
+        "doc_title": "Bando PMI 2025",
+    }]
+    ctx = _build_context(chunks)
+    assert "Bando PMI 2025" in ctx
+
+
+def test_build_context_include_link():
+    """_build_context deve includere URL /api/v1/files/kb/file nel delimiter."""
+    from app.llm import _build_context
+    chunks = [{
+        "excerpt": "Testo.",
+        "source_path": "/data/inbox/demo/bando.pdf",
+        "kb_namespace": "demo",
+        "doc_title": "Bando PMI 2025",
+    }]
+    ctx = _build_context(chunks)
+    assert "/api/v1/files/demo/bando.pdf" in ctx
+
+
+def test_build_context_fallback_senza_doc_title():
+    """_build_context funziona anche senza doc_title — delimiter presente."""
+    from app.llm import _build_context
+    chunks = [{"excerpt": "Testo.", "source_path": "/data/inbox/demo/bando.pdf", "kb_namespace": "demo"}]
+    ctx = _build_context(chunks)
     assert "--- INIZIO DOCUMENTO 1" in ctx

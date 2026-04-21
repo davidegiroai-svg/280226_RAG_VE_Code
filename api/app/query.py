@@ -57,6 +57,7 @@ def build_query_sql(
             metadata->>'source_path' as source_path,
             chunk_index,
             metadata AS doc_metadata,
+            doc_title,
             embedding <=> %s as distance
         FROM chunks
         WHERE embedding IS NOT NULL
@@ -107,6 +108,7 @@ def parse_results(rows) -> List[Dict[str, Any]]:
             "source_path": row.get("source_path"),
             "excerpt": row["excerpt"],
             "doc_metadata": raw_meta,
+            "doc_title": row.get("doc_title") or "",
         })
     return sources
 
