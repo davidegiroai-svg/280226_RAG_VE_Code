@@ -1,5 +1,28 @@
 # Checkpoint Status
 
+**Checkpoint updated:** 2026-04-21 by POST-M7-ACTIVATION
+
+## TASK POST-M7-ACTIVATION — Attivazione produzione feature RAG quality
+**Status:** DONE
+**Timestamp:** 2026-04-21
+**Commit:** 677773c
+
+**Operazioni eseguite:**
+- Migration DB: `scripts/migration_contextual.sql` applicata — colonna `doc_title` aggiunta a chunks, trigger tsvector arricchito con titolo documento, backfill 7706 chunk
+- Backfill embeddings: tutti i 7706 chunk re-embeddati con prefisso contestuale `[kb|titolo|tipo]`
+- Backfill metadata: 7 documenti auto-classificati (2 skip demo, 1 err test file)
+- Fix volume worker: `docker-compose.yml` worker volume `:ro` → `:rw` per scrittura `.meta.json`
+- Feature flags attivati in `.env`: `AUTO_CLASSIFY_ENABLED=true`, `MULTIQUERY_ENABLED=true`
+
+**Verifiche:**
+- Multi-query expansion: 4 varianti generate per query test
+- FTS con doc_title: match su testo titolo documento via tsvector
+- Test suite: 245 passed
+
+**Prossimo sviluppo:** Document Management UI (delete/re-ingest/preview da frontend)
+
+---
+
 **Checkpoint updated:** 2026-04-19 by POST-M7-GRAPHRAG
 
 ## TASK POST-M7 — Backfill entità, Frontend GraphRAG, Smoke test 5/5
