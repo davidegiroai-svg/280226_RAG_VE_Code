@@ -71,7 +71,7 @@ services:
       AUTO_CLASSIFY_ENABLED: "${AUTO_CLASSIFY_ENABLED:-false}"
       METADATA_EXTRACT_TIMEOUT: "${METADATA_EXTRACT_TIMEOUT:-120}"
     volumes:
-      - ./data:/data:ro
+      - ./data:/data:rw
     entrypoint: ["python", "-m", "app.ingest_fs"]
     profiles:
       - manual
